@@ -1,0 +1,288 @@
+// Dungeon themes available in the game.
+// The enum is updated to include a new `forest` variant.
+// Each theme is used to drive UI colours and grid logic.
+
+enum DungeonThemeType { stone, lava, ice, crypt, voidChamber, forest }
+
+/// Configuration for a single dungeon.
+///
+/// All dungeons share a common level structure – 20 levels – and the
+/// following values are calculated based on the current level.
+class DungeonConfig {
+  final String id;
+  final String name;
+  final String depth;
+  final String description;
+  final List<String> emojiSet;
+  final DungeonThemeType themeType;
+  final int baseRewardCoins;
+  final double baseScoreMultiplier;
+
+  const DungeonConfig({
+    required this.id,
+    required this.name,
+    required this.depth,
+    required this.description,
+    required this.emojiSet,
+    required this.themeType,
+    required this.baseRewardCoins,
+    required this.baseScoreMultiplier,
+  });
+
+  // ---------------------------------------------------------------------------
+  //  Utility helpers
+  // ---------------------------------------------------------------------------
+
+  /// Returns a `{rows, cols}` map for a specific level (1‑20).
+  ///
+  /// The stone and forest themes use identical grid rules; the other themes
+  /// vary slightly for atmosphere.
+  Map<String, int> getGridSizeForLevel(int level) {
+    level = level.clamp(1, levelsPerDungeon); // Ensure level is within bounds.
+    switch (themeType) {
+      case DungeonThemeType.stone:
+      case DungeonThemeType.forest:
+      case DungeonThemeType.lava:
+      case DungeonThemeType.ice:
+      case DungeonThemeType.crypt:
+      case DungeonThemeType.voidChamber:
+        if (level <= 5) return {'rows': 4, 'cols': 3};
+        if (level <= 10) return {'rows': 5, 'cols': 4};
+        if (level <= 15) return {'rows': 6, 'cols': 5};
+        return {'rows': 6, 'cols': 6};
+    }
+  }
+
+  /// Whether a mismatch penalty applies for a given level.
+  bool getMismatchPenaltyForLevel(int level) {
+    switch (themeType) {
+      case DungeonThemeType.stone:
+      case DungeonThemeType.forest:
+        return false; // No penalty for these themes.
+      case DungeonThemeType.lava:
+        return level >= 15; // Starts at level 15.
+      case DungeonThemeType.ice:
+      case DungeonThemeType.crypt:
+      case DungeonThemeType.voidChamber:
+        return true; // Always.
+    }
+  }
+
+  /// Total matching pairs for a level.
+  int getTotalPairsForLevel(int level) {
+    final grid = getGridSizeForLevel(level);
+    return (grid['rows']! * grid['cols']!) ~/ 2;
+  }
+
+  /// Scaled monster coin reward for a level.
+  int getRewardCoinsForLevel(int level) {
+    return baseRewardCoins + level * 2;
+  }
+
+  /// Scaled score multiplier for a level.
+  double getScoreMultiplierForLevel(int level) {
+    return baseScoreMultiplier * (1 + level * 0.05);
+  }
+
+  // ---------------------------------------------------------------------------
+  //  Convenience getters for use in the UI.
+  // ---------------------------------------------------------------------------
+
+  static const int levelsPerDungeon = 20;
+
+  /// Helper that returns the row count for the *final* level (maximum).
+  int get rows => getGridSizeForLevel(levelsPerDungeon)['rows']!;
+
+  /// Helper that returns the column count for the *final* level.
+  int get cols => getGridSizeForLevel(levelsPerDungeon)['cols']!;
+
+  /// Helper that returns the total pair count for the *final* level.
+  int get totalPairs => getTotalPairsForLevel(levelsPerDungeon);
+
+  /// Helper that indicates if the final level of this dungeon applies a penalty.
+  bool get mismatchPenalty => getMismatchPenaltyForLevel(levelsPerDungeon);
+
+  // ---------------------------------------------------------------------------
+  //  Pre‑defined dungeons.
+  // ---------------------------------------------------------------------------
+
+  static const List<DungeonConfig> dungeons = [
+    DungeonConfig(
+      id: 'stone_chamber',
+      name: 'Stone Chamber',
+      depth: 'Depth B1',
+      description:
+          'A dusty stone vault covered in ancient carvings. A safe place to begin your descent.',
+      emojiSet: ['🔑', '🧪', '🧿', '🪙', '🧱', '🪓', '🤢', '📜'],
+      themeType: DungeonThemeType.stone,
+      baseRewardCoins: 15,
+      baseScoreMultiplier: 1.0,
+    ),
+    DungeonConfig(
+      id: 'lava_chamber',
+      name: 'Lava Chamber',
+      depth: 'Depth B2',
+      description:
+          'A subterranean forge built over rivers of bubbling magma. The heat flickers and traps hurt.',
+      emojiSet: [
+        '🌋',
+        '🔥',
+        '🪙',
+        '🧪',
+        '🐉',
+        '⚔️',
+        '💀',
+        '📜',
+        '🪓',
+        '🔑',
+        '💎',
+        '🧱',
+      ],
+      themeType: DungeonThemeType.lava,
+      baseRewardCoins: 35,
+      baseScoreMultiplier: 1.5,
+    ),
+    DungeonConfig(
+      id: 'ice_chamber',
+      name: 'Ice Chamber',
+      depth: 'Depth B3',
+      description:
+          'A cavern of frozen tears. Chilling frost and crystals, one wrong step freeze-locks your resolve.',
+      emojiSet: [
+        '❄️',
+        '💎',
+        '🧊',
+        '🪙',
+        '🧪',
+        '🕸️',
+        '🐍',
+        '📜',
+        '🔑',
+        '🧿',
+        '🏹',
+        '🛡️',
+        '🐺',
+        '🏔️',
+        '🌨️',
+        '☄️',
+        '🪞',
+        '🔮',
+      ],
+      themeType: DungeonThemeType.ice,
+      baseRewardCoins: 60,
+      baseScoreMultiplier: 2.2,
+    ),
+    DungeonConfig(
+      id: 'crypt_chamber',
+      name: 'Crypt Chamber',
+      depth: 'Depth B4',
+      description:
+          'The final tomb of the rune kings, shrouded in eternal darkness and toxic vapors.',
+      emojiSet: [
+        '⚰️',
+        '🔮',
+        '🧿',
+        '🪙',
+        '🧪',
+        '🧵',
+        '☠️',
+        '📜',
+        '🔑',
+        '🦇',
+        '👻',
+        '🕯️',
+        '🕷️',
+        '🦴',
+        '🛡️',
+        '⛓️',
+        '🗡️',
+        '🪦',
+        '💎',
+        '🎭',
+        '🗝️',
+        '🩸',
+        '🚪',
+        '🃏',
+      ],
+      themeType: DungeonThemeType.crypt,
+      baseRewardCoins: 100,
+      baseScoreMultiplier: 3.5,
+    ),
+    DungeonConfig(
+      id: 'void_chamber',
+      name: 'Void Chamber',
+      depth: 'Depth B5',
+      description:
+          'Beyond the crypt lies the cosmic void — an endless expanse of stars, vortexes, and forgotten gods.',
+      emojiSet: [
+        '🌌',
+        '🌀',
+        '🪐',
+        '🛸',
+        '👾',
+        '🚀',
+        '🛰️',
+        '☄️',
+        '🧪',
+        '☠️',
+        '🪙',
+        '📜',
+        '💎',
+        '🌑',
+        '🔭',
+        '⭐',
+        '🌙',
+        '🪬',
+        '🧬',
+        '🌠',
+        '🔮',
+        '🃏',
+        '🕳️',
+        '🧿',
+        '🐙',
+        '💀',
+        '🧱',
+        '🔑',
+        '🎭',
+        '🩸',
+        '⚗️',
+        '🫧',
+      ],
+      themeType: DungeonThemeType.voidChamber,
+      baseRewardCoins: 150,
+      baseScoreMultiplier: 5.0,
+    ),
+    DungeonConfig(
+      id: 'forest_chamber',
+      name: 'Forest Chamber',
+      depth: 'Depth B6',
+      description:
+          'A misty forest cavern, where ancient trees twist into stone. Light a bit, but danger lurks behind every shadow.',
+      emojiSet: [
+        '🌲',
+        '🌳',
+        '🌴',
+        '🌿',
+        '🍃',
+        '🍄',
+        '🦉',
+        '🦇',
+        '🦚',
+        '🦛',
+        '🦣',
+        '🦫',
+        '🦈',
+        '🦊',
+        '🦁',
+        '🦀',
+        '🦑',
+        '🦚',
+        '🦵',
+        '🦾',
+      ],
+      themeType: DungeonThemeType.forest,
+      baseRewardCoins: 20,
+      baseScoreMultiplier: 1.2,
+    ),
+  ];
+}
