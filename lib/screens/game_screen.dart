@@ -792,7 +792,9 @@ String _modifierName(LevelModifier mod) {
                               10.0,
                               Colors.white,
                               weight: FontWeight.bold,
+                              
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),

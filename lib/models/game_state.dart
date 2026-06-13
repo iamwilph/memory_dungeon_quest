@@ -679,6 +679,7 @@ class GameState extends ChangeNotifier {
 
     _flushGame();
     _lastTriggeredEffect = 'victory';
+    _isLevelCleared = true;
 
     final currentDungeonIdx = DungeonConfig.dungeons.indexWhere(
       (d) => d.id == _activeDungeon.id,
@@ -699,6 +700,7 @@ class GameState extends ChangeNotifier {
 
     _coins += _activeDungeon.getRewardCoinsForLevel(_currentLevel);
     unawaited(_saveCampaignProgress());
+    notifyListeners();
     return true;
   }
 
