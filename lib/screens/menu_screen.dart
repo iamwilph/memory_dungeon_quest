@@ -10,6 +10,7 @@ import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
 import 'game_screen.dart';
 import 'dungeon_selector_screen.dart';
+import 'shop_screen.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
@@ -103,6 +104,19 @@ class MenuScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const DungeonSelectorScreen()),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16.0),
+                  
+                  MenuButton(
+                    text: 'ARTIFACT MARKET',
+                    icon: Icons.store,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ShopScreen()),
                       );
                     },
                   ),

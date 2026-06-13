@@ -51,7 +51,7 @@ class DungeonCardWidget extends StatelessWidget {
                     alignment: Alignment.center,
                     child: _buildFrontFace(context, theme),
                   )
-                : _buildBackFace(context, theme),
+                : _buildBackFace(context, theme, gameState),
           );
         },
       ),
@@ -59,7 +59,11 @@ class DungeonCardWidget extends StatelessWidget {
   }
 
   // Renders the rough chiseled stone block card back
-  Widget _buildBackFace(BuildContext context, DungeonThemeData theme) {
+  Widget _buildBackFace(BuildContext context, DungeonThemeData theme, GameState gameState) {
+    // Check for poison_sight artifact
+    final hasPoisonSight = gameState.unlockedArtifacts.contains('poison_sight');
+    final showPoisonWarning = hasPoisonSight && card.type == CardType.poison;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6.0),
@@ -71,22 +75,45 @@ class DungeonCardWidget extends StatelessWidget {
           ),
         ],
       ),
-      child: CustomPaint(
-        painter: StonePainter(
-          bgColor: theme.cardBackBgColor,
-          borderColor: theme.hudBorderColor,
-          crackColor: theme.cardBackRuneColor,
-          borderRadius: 6.0,
-          borderWidth: 1.5,
-          drawCracks: true,
-          seed: card.id,
-        ),
-        child: Center(
-          child: Text(
-            _getRuneCharacter(card.id),
-            style: DungeonTheme.getRuneStyle(22.0, theme.cardBackRuneColor.withValues(alpha:0.55)),
+      child: Stack(
+        children: [
+          CustomPaint(
+            painter: StonePainter(
+              bgColor: theme.cardBackBgColor,
+              borderColor: theme.hudBorderColor,
+              crackColor: hasPoisonSight
+                  ? (card.type == CardType.poison
+                      ? const Color(0xFFE74C3C) // Red tint for poison cards
+                      : theme.accentColor)
+                  : theme.accentColor, // Use dungeon accent color for cracks
+              borderRadius: 6.0,
+              borderWidth: showPoisonWarning ? 2.0 : 1.5,
+              drawCracks: true,
+              seed: card.id,
+              themeAccent: hasPoisonSight && card.type == CardType.poison ? null : theme.accentColor,
+            ),
+            child: Center(
+              child: Text(
+                _getRuneCharacter(card.id),
+                style: DungeonTheme.getRuneStyle(22.0, theme.cardBackRuneColor.withValues(alpha:0.55)),
+              ),
+            ),
           ),
-        ),
+          // Poison warning indicator (red dot in bottom-right corner)
+          if (showPoisonWarning)
+            Positioned(
+              bottom: 6,
+              right: 6,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE74C3C),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

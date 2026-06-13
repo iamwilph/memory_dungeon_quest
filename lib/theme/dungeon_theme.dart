@@ -175,6 +175,24 @@ class DungeonTheme {
     );
   }
 
+    static TextStyle getShopTitleStyle(BuildContext context, Color color) {
+    return GoogleFonts.cinzel(
+      textStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: color,
+        letterSpacing: 2.0,
+        shadows: [
+          Shadow(
+            color: Colors.black.withValues(alpha:0.8),
+            offset: const Offset(2, 2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+    );
+  }
+
   static TextStyle getRuneStyle(double size, Color color) {
     return GoogleFonts.uncialAntiqua(
       textStyle: TextStyle(

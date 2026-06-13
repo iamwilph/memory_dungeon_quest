@@ -8,6 +8,7 @@ class StonePainter extends CustomPainter {
   final double borderRadius;
   final bool drawCracks;
   final int seed;
+  final Color? themeAccent; // Optional theme accent to tint the cracks
 
   StonePainter({
     required this.bgColor,
@@ -17,12 +18,16 @@ class StonePainter extends CustomPainter {
     this.borderRadius = 8.0,
     this.drawCracks = true,
     this.seed = 0,
+    this.themeAccent, // optional - tints cracks with dungeon color
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final rrect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
+
+    // Use theme accent for cracks if provided
+    final effectiveCrackColor = themeAccent ?? crackColor;
 
     // 1. Draw solid stone background
     final bgPaint = Paint()
@@ -52,7 +57,7 @@ class StonePainter extends CustomPainter {
     // 3. Draw Jagged Cracks if enabled
     if (drawCracks) {
       final crackPaint = Paint()
-        ..color = crackColor.withValues(alpha:0.4)
+        ..color = effectiveCrackColor.withValues(alpha:0.4)
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round;
@@ -140,6 +145,7 @@ class StonePainter extends CustomPainter {
     return oldDelegate.bgColor != bgColor ||
         oldDelegate.borderColor != borderColor ||
         oldDelegate.crackColor != crackColor ||
+        oldDelegate.themeAccent != themeAccent ||
         oldDelegate.borderWidth != borderWidth ||
         oldDelegate.borderRadius != borderRadius ||
         oldDelegate.drawCracks != drawCracks ||

@@ -8,6 +8,10 @@ class CampaignProgress {
   final int score;
   final int hintCharges;
 
+  // Shop / artifact fields (persisted across runs)
+  final int totalCoins;       // Lifetime coins earned across all runs (v2+)
+  final Set<String> artifactsUnlocked; // e.g. {'extra_hint', 'lives_boost'}
+
   const CampaignProgress({
     required this.unlockedDungeonIndex,
     required this.dungeonLevelProgress,
@@ -15,6 +19,8 @@ class CampaignProgress {
     required this.coins,
     required this.score,
     required this.hintCharges,
+    required this.totalCoins,
+    required this.artifactsUnlocked,
   });
 
   factory CampaignProgress.fromJson(Map<String, Object?> json) {
@@ -31,6 +37,15 @@ class CampaignProgress {
       }
     }
 
+    // Parse artifacts: can be a List<String> in JSON (v2+)
+    final rawArtifacts = json['artifactsUnlocked'];
+    Set<String> artifacts;
+    if (rawArtifacts is List) {
+      artifacts = rawArtifacts.map((e) => e.toString()).toSet();
+    } else {
+      artifacts = {}; // v1 migration: no artifacts
+    }
+
     return CampaignProgress(
       unlockedDungeonIndex: _readInt(json['unlockedDungeonIndex']),
       dungeonLevelProgress: progress,
@@ -38,12 +53,14 @@ class CampaignProgress {
       coins: _readInt(json['coins']),
       score: _readInt(json['score']),
       hintCharges: _readInt(json['hintCharges'], fallback: 1),
+      totalCoins: _readInt(json['totalCoins'], fallback: 0), // v1 -> 0
+      artifactsUnlocked: artifacts,
     );
   }
 
   Map<String, Object?> toJson() {
     return {
-      'version': 1,
+      'version': 2,
       'unlockedDungeonIndex': unlockedDungeonIndex,
       'dungeonLevelProgress': dungeonLevelProgress.map(
         (key, value) => MapEntry(key.toString(), value),
@@ -52,6 +69,8 @@ class CampaignProgress {
       'coins': coins,
       'score': score,
       'hintCharges': hintCharges,
+      'totalCoins': totalCoins,
+      'artifactsUnlocked': artifactsUnlocked.toList(),
     };
   }
 

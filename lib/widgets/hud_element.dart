@@ -13,6 +13,7 @@ class HudElement extends StatelessWidget {
   final int seed;
   final double borderRadius;
   final double borderWidth;
+  final Color? borderColor;
 
   const HudElement({
     super.key,
@@ -24,6 +25,7 @@ class HudElement extends StatelessWidget {
     this.seed = 0,
     this.borderRadius = 8.0,
     this.borderWidth = 2.0,
+    this.borderColor,
   });
 
   @override
@@ -47,7 +49,7 @@ class HudElement extends StatelessWidget {
       child: CustomPaint(
         painter: StonePainter(
           bgColor: theme.hudBgColor,
-          borderColor: theme.hudBorderColor,
+          borderColor: borderColor ?? theme.hudBorderColor,
           crackColor: theme.primaryColor,
           borderWidth: borderWidth,
           borderRadius: borderRadius,

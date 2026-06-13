@@ -2,6 +2,49 @@
 // The enum is updated to include a new `forest` variant.
 // Each theme is used to drive UI colours and grid logic.
 
+/// Level modifiers that change how the game is played within a dungeon.
+enum LevelModifier { none, shadow, timer, swap, sabotage }
+
+/// Modifier definitions per dungeon index.
+const Map<int, List<_LevelModifierEntry>> _dungeonModifiers = {
+  0: [ // Stone Chamber (B1) — gentle intro modifiers
+    _LevelModifierEntry(8, LevelModifier.shadow),   // Level 8: some cards hidden
+    _LevelModifierEntry(14, LevelModifier.swap),     // Level 14: board shuffles
+    _LevelModifierEntry(18, LevelModifier.sabotage), // Level 18: fake pair
+  ],
+  1: [ // Lava Chamber (B2) — pressure modifiers
+    _LevelModifierEntry(6, LevelModifier.timer),      // Level 6: cards auto-flip
+    _LevelModifierEntry(12, LevelModifier.sabotage),  // Level 12: fake pairs
+    _LevelModifierEntry(16, LevelModifier.shadow),     // Level 16: hidden cards
+    _LevelModifierEntry(20, LevelModifier.swap),       // Final level: shuffle pressure
+  ],
+  2: [ // Ice Chamber (B3) — harsh modifiers
+    _LevelModifierEntry(5, LevelModifier.timer),      // Early timer exposure
+    _LevelModifierEntry(10, LevelModifier.sabotage),  // Mid-game visual trick
+    _LevelModifierEntry(15, LevelModifier.shadow),     // Late-level hidden cards
+    _LevelModifierEntry(20, LevelModifier.swap),       // Final: shuffle pressure
+  ],
+  3: [ // Crypt Chamber (B4) — brutal modifiers
+    _LevelModifierEntry(5, LevelModifier.sabotage),   // Early deception
+    _LevelModifierEntry(10, LevelModifier.swap),      // Mid-game shuffle
+    _LevelModifierEntry(15, LevelModifier.timer),     // Late-level pressure
+    _LevelModifierEntry(20, LevelModifier.shadow),    // Final: hidden cards
+  ],
+  4: [ // Void Chamber (B5) — mind-bending modifiers
+    _LevelModifierEntry(4, LevelModifier.sabotage),   // Early deception
+    _LevelModifierEntry(8, LevelModifier.shadow),     // Hidden cards pressure
+    _LevelModifierEntry(12, LevelModifier.timer),     // Mid-game timing test
+    _LevelModifierEntry(16, LevelModifier.swap),      // Chaos shuffle
+    _LevelModifierEntry(20, LevelModifier.timer),     // Final: relentless pressure
+  ],
+};
+
+class _LevelModifierEntry {
+  final int level;
+  final LevelModifier modifier;
+  const _LevelModifierEntry(this.level, this.modifier);
+}
+
 enum DungeonThemeType { stone, lava, ice, crypt, voidChamber, forest }
 
 /// Configuration for a single dungeon.
@@ -101,6 +144,18 @@ class DungeonConfig {
 
   /// Helper that indicates if the final level of this dungeon applies a penalty.
   bool get mismatchPenalty => getMismatchPenaltyForLevel(levelsPerDungeon);
+
+  /// Returns the active modifier for a given level in this dungeon.
+  LevelModifier getModifierForLevel(int level) {
+    final idx = DungeonConfig.dungeons.indexWhere((d) => d.id == id);
+    if (idx == -1) return LevelModifier.none;
+
+    final entries = _dungeonModifiers[idx] ?? [];
+    for (final entry in entries) {
+      if (entry.level == level) return entry.modifier;
+    }
+    return LevelModifier.none;
+  }
 
   // ---------------------------------------------------------------------------
   //  Pre‑defined dungeons.

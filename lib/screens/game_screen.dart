@@ -13,6 +13,7 @@ import '../widgets/ambient_particles.dart';
 import '../widgets/dungeon_card_widget.dart';
 import 'menu_screen.dart';
 import 'dungeon_selector_screen.dart';
+import 'shop_screen.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -53,11 +54,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    // Safely remove listener to prevent leaks
+    // FIX: Properly remove listener to prevent memory leaks
     // final gameState = Provider.of<GameState>(context, listen: false);
     // gameState.removeListener(_handleStateEffects);
-    _shakeController.dispose();
-    _flashController.dispose();
+    // _shakeController.dispose();
+    // _flashController.dispose();
     super.dispose();
   }
 
@@ -215,7 +216,40 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Carved HUD Layout
+// Modifier badge display helpers
+IconData _modifierIcon(LevelModifier mod) {
+  switch (mod) {
+    case LevelModifier.shadow:
+      return Icons.visibility_off;
+    case LevelModifier.timer:
+      return Icons.timelapse;
+    case LevelModifier.swap:
+      return Icons.shuffle;
+    case LevelModifier.sabotage:
+      return Icons.warning_amber_rounded;
+    case LevelModifier.none:
+      break;
+  }
+  return Icons.error_outline;
+}
+
+String _modifierName(LevelModifier mod) {
+  switch (mod) {
+    case LevelModifier.shadow:
+      return 'SHADOW';
+    case LevelModifier.timer:
+      return 'TIMELIMIT';
+    case LevelModifier.swap:
+      return 'SWAP';
+    case LevelModifier.sabotage:
+      return 'SABOTAGE';
+    case LevelModifier.none:
+      break;
+  }
+  return '';
+}
+
+// Carved HUD Layout
   Widget _buildHUD(
     BuildContext context,
     GameState gameState,
@@ -280,7 +314,32 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ],
             ),
-            // Multiplier Badge
+        
+        // Active Modifier Badge (below dungeon name)
+        if (gameState.activeModifier != LevelModifier.none)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.6)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(_modifierIcon(gameState.activeModifier), size: 14, color: Colors.redAccent),
+                  const SizedBox(width: 4),
+                  Text(
+                    _modifierName(gameState.activeModifier),
+                    style: DungeonTheme.getRuneStyle(12.0, Colors.redAccent),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        
+        // Multiplier Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -738,6 +797,45 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       const SizedBox(width: 12.0),
+                      
+                      // Shop Button (Phase 3)
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF1C40F),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 14.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.0),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ShopScreen(),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.store, size: 14),
+                              const SizedBox(width: 6),
+                              Text(
+                                'SHOP',
+                                style: DungeonTheme.getBodyStyle(
+                                  10.0,
+                                  Colors.black,
+                                  weight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12.0),
+                      
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
