@@ -240,19 +240,64 @@ class GameHud extends StatelessWidget {
                 seed: 1,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(gameState.maxLives, (index) {
-                    final isFull = index < gameState.lives;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                      child: Icon(
-                        isFull ? Icons.favorite : Icons.favorite_border,
-                        color: isFull
+                  children: [
+                    // Always render exactly 5 hearts
+                    ...List.generate(5, (index) {
+                      final isFull = index < gameState.lives;
+                      final isMaxed = gameState.lives >= gameState.maxLives;
+                      final isWarning =
+                          gameState.lives >= gameState.maxLives - 3 &&
+                              gameState.lives < gameState.maxLives;
+
+                      Color heartColor;
+                      if (isMaxed) {
+                        // Gold glow when fully healed
+                        heartColor = const Color(0xFFF1C40F);
+                      } else if (isFull) {
+                        heartColor = const Color(0xFFE74C3C);
+                      } else if (isWarning) {
+                        // Dim 5th heart when close to full — "use potions soon"
+                        heartColor = Colors.white38;
+                      } else {
+                        heartColor = isFull
                             ? const Color(0xFFE74C3C)
-                            : Colors.white24,
-                        size: 18.0,
+                            : Colors.white24;
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                        child: Icon(
+                          isFull ? Icons.favorite : Icons.favorite_border,
+                          color: heartColor,
+                          size: 18.0,
+                        ),
+                      );
+                    }),
+
+                    // Overflow text when maxLives > 5
+                    if (gameState.maxLives > 5) ...[
+                      SizedBox(width: 4),
+                      Text(
+                        '+${gameState.maxLives - 5}',
+                        style: DungeonTheme.getBodyStyle(
+                          13.0,
+                          (gameState.lives >= gameState.maxLives)
+                              ? const Color(0xFFF1C40F) // gold when full
+                              : theme.accentColor, // dungeon theme color
+                          weight: FontWeight.bold,
+                        ),
                       ),
-                    );
-                  }),
+                      SizedBox(width: 6),
+                      // Ratio text: current/max
+                      Text(
+                        '${gameState.lives}/${gameState.maxLives}',
+                        style: DungeonTheme.getBodyStyle(
+                          11.0,
+                          const Color(0xFF8888AA),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),

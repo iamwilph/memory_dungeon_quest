@@ -60,6 +60,7 @@ class DungeonConfig {
   final DungeonThemeType themeType;
   final int baseRewardCoins;
   final double baseScoreMultiplier;
+  final int maxLives;
 
   const DungeonConfig({
     required this.id,
@@ -70,6 +71,7 @@ class DungeonConfig {
     required this.themeType,
     required this.baseRewardCoins,
     required this.baseScoreMultiplier,
+    required this.maxLives,
   });
 
   // ---------------------------------------------------------------------------
@@ -212,6 +214,7 @@ class DungeonConfig {
       themeType: DungeonThemeType.stone,
       baseRewardCoins: 15,
       baseScoreMultiplier: 1.0,
+      maxLives: 5,
     ),
     DungeonConfig(
       id: 'lava_chamber',
@@ -236,6 +239,7 @@ class DungeonConfig {
       themeType: DungeonThemeType.lava,
       baseRewardCoins: 35,
       baseScoreMultiplier: 1.5,
+      maxLives: 8,
     ),
     DungeonConfig(
       id: 'ice_chamber',
@@ -266,6 +270,7 @@ class DungeonConfig {
       themeType: DungeonThemeType.ice,
       baseRewardCoins: 60,
       baseScoreMultiplier: 2.2,
+      maxLives: 12,
     ),
     DungeonConfig(
       id: 'crypt_chamber',
@@ -302,6 +307,7 @@ class DungeonConfig {
       themeType: DungeonThemeType.crypt,
       baseRewardCoins: 100,
       baseScoreMultiplier: 3.5,
+      maxLives: 15,
     ),
     DungeonConfig(
       id: 'void_chamber',
@@ -346,6 +352,7 @@ class DungeonConfig {
       themeType: DungeonThemeType.voidChamber,
       baseRewardCoins: 150,
       baseScoreMultiplier: 5.0,
+      maxLives: 20,
     ),
     DungeonConfig(
       id: 'forest_chamber',
@@ -382,6 +389,7 @@ class DungeonConfig {
       themeType: DungeonThemeType.forest,
       baseRewardCoins: 20,
       baseScoreMultiplier: 1.2,
+      maxLives: 10,
       // Unique modifier: "poison bloom" — poison tiles appear 2x more than normal pairs
       // This makes the forest feel dangerous despite its welcoming appearance
     ),

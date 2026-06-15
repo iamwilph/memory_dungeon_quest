@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Dungeon — Dynamic Lives HUD (5-Heart Cap)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a2e;
+    font-family: 'Cinzel', serif;
+    color: #e0d8c8;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    color: #c9b99a;
+    margin-bottom: 8px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #7a7a8a;
+    margin-bottom: 36px;
+    font-family: 'MedievalSharp', cursive;
+  }
+
+  .dungeon-row {
+    background: #16213e;
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.15s;
+  }
+
+  .dungeon-row:hover {
+    transform: translateY(-1px);
+    border-color: #3a3a6a;
+  }
+
+  .dungeon-label {
+    min-width: 130px;
+    text-align: right;
+  }
+
+  .dungeon-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .dungeon-depth {
+    font-size: 10px;
+    color: #8888aa;
+    margin-top: 2px;
+  }
+
+  .penalty-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    display: inline-block;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .penalty-none {
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+  }
+
+  .penalty-partial {
+    background: rgba(241, 196, 15, 0.15);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+  }
+
+  .penalty-always {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+  }
+
+  .hearts-container {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .heart {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+  }
+
+  .heart.full {
+    filter: drop-shadow(0 0 4px rgba(231, 76, 60, 0.6));
+  }
+
+  .heart.empty {
+    opacity: 0.15;
+    filter: grayscale(1);
+  }
+
+  .heart.warning {
+    opacity: 0.4;
+    filter: grayscale(0.5);
+  }
+
+  .heart.gold {
+    filter: drop-shadow(0 0 6px rgba(241, 196, 15, 0.8));
+  }
+
+  .overflow-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #c9b99a;
+    margin-left: 4px;
+    font-family: 'Cinzel', serif;
+  }
+
+  .overflow-text.gold {
+    color: #f1c40f;
+  }
+
+  .ratio-text {
+    font-size: 11px;
+    color: #7a7a8a;
+    margin-left: 6px;
+    font-family: 'MedievalSharp', cursive;
+  }
+
+  .current-lives {
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .lives-value {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .lives-label {
+    font-size: 8px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .scenario {
+    margin-top: 12px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    font-size: 10px;
+    color: #8888aa;
+    font-family: 'MedievalSharp', cursive;
+  }
+
+  /* Dungeon theme colors */
+  .theme-stone .dungeon-name { color: #b0a898; }
+  .theme-lava .dungeon-name { color: #e74c3c; }
+  .theme-ice .dungeon-name { color: #74b9ff; }
+  .theme-crypt .dungeon-name { color: #a29bfe; }
+  .theme-void .dungeon-name { color: #d63031; }
+  .theme-forest .dungeon-name { color: #55efc4; }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #2a2a4a, transparent);
+    margin: 24px 0;
+  }
+
+  .notes {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .note {
+    font-size: 12px;
+    color: #8888aa;
+    margin-bottom: 10px;
+    line-height: 1.6;
+    font-family: 'MedievalSharp', cursive;
+  }
+
+  .note strong {
+    color: #c9b99a;
+  }
+</style>
+</head>
+<body>
+
+<h1>Memory Dungeon — Dynamic Lives HUD</h1>
+<p class="subtitle">5-heart visual cap · overflow text · ratio display</p>
+
+<!-- STONE CHAMBER — 5 max, no penalty -->
+<div class="dungeon-row theme-stone">
+  <div class="dungeon-label">
+    <div class="dungeon-name">Stone Chamber</div>
+    <div class="dungeon-depth">Depth B1</div>
+    <span class="penalty-badge penalty-none">✦ NO PENALTY</span>
+  </div>
+  <div class="hearts-container">
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart warning">❤️</span>
+    <span class="heart empty">❤️</span>
+  </div>
+  <div class="current-lives">
+    <div class="lives-value" style="color: #e74c3c;">3</div>
+    <div class="lives-label">/ 5</div>
+  </div>
+  <div class="scenario">No penalty — cap stays 5, same as before. 3/5 shown.</div>
+</div>
+
+<!-- LAVA CHAMBER — 8 max, penalty from lvl 15 -->
+<div class="dungeon-row theme-lava">
+  <div class="dungeon-label">
+    <div class="dungeon-name">Lava Chamber</div>
+    <div class="dungeon-depth">Depth B2</div>
+    <span class="penalty-badge penalty-partial">⚠ PARTIAL (LVL 15+)</span>
+  </div>
+  <div class="hearts-container">
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="overflow-text" style="color: #e74c3c;">+3</span>
+    <span class="ratio-text">6/8</span>
+  </div>
+  <div class="current-lives">
+    <div class="lives-value" style="color: #e74c3c;">6</div>
+    <div class="lives-label">/ 8</div>
+  </div>
+  <div class="scenario">5 visible hearts + "+3" overflow. 6/8 ratio shows the pool.</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ICE CHAMBER — 12 max, always penalty -->
+<div class="dungeon-row theme-ice">
+  <div class="dungeon-label">
+    <div class="dungeon-name">Ice Chamber</div>
+    <div class="dungeon-depth">Depth B3</div>
+    <span class="penalty-badge penalty-always">☠ ALWAYS PENALTY</span>
+  </div>
+  <div class="hearts-container">
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="overflow-text" style="color: #74b9ff;">+7</span>
+    <span class="ratio-text">10/12</span>
+  </div>
+  <div class="current-lives">
+    <div class="lives-value" style="color: #74b9ff;">10</div>
+    <div class="lives-label">/ 12</div>
+  </div>
+  <div class="scenario">5 visible + "+7" (ice blue). 10/12 ratio — nearly full.</div>
+</div>
+
+<!-- CRYPT CHAMBER — 15 max, always penalty -->
+<div class="dungeon-row theme-crypt">
+  <div class="dungeon-label">
+    <div class="dungeon-name">Crypt Chamber</div>
+    <div class="dungeon-depth">Depth B4</div>
+    <span class="penalty-badge penalty-always">☠ ALWAYS PENALTY</span>
+  </div>
+  <div class="hearts-container">
+    <span class="heart full" style="filter: drop-shadow(0 0 6px rgba(241, 196, 15, 0.8));">❤️</span>
+    <span class="heart full" style="filter: drop-shadow(0 0 6px rgba(241, 196, 15, 0.8));">❤️</span>
+    <span class="heart full" style="filter: drop-shadow(0 0 6px rgba(241, 196, 15, 0.8));">❤️</span>
+    <span class="heart full" style="filter: drop-shadow(0 0 6px rgba(241, 196, 15, 0.8));">❤️</span>
+    <span class="heart full" style="filter: drop-shadow(0 0 6px rgba(241, 196, 15, 0.8));">❤️</span>
+    <span class="overflow-text gold">+10</span>
+    <span class="ratio-text">10/15</span>
+  </div>
+  <div class="current-lives">
+    <div class="lives-value" style="color: #f1c40f;">10/15</div>
+    <div class="lives-label">FULL</div>
+  </div>
+  <div class="scenario">All 5 hearts glow gold + "+10" (gold) = fully healed. Next heal = +50 score.</div>
+</div>
+
+<!-- VOID CHAMBER — 20 max, always penalty -->
+<div class="dungeon-row theme-void">
+  <div class="dungeon-label">
+    <div class="dungeon-name">Void Chamber</div>
+    <div class="dungeon-depth">Depth B5</div>
+    <span class="penalty-badge penalty-always">☠ ALWAYS PENALTY</span>
+  </div>
+  <div class="hearts-container">
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart warning">❤️</span>
+    <span class="overflow-text" style="color: #d63031;">+15</span>
+    <span class="ratio-text">9/20</span>
+  </div>
+  <div class="current-lives">
+    <div class="lives-value" style="color: #d63031;">9</div>
+    <div class="lives-label">/ 20</div>
+  </div>
+  <div class="scenario">5th heart dimmed (warning: "use potions"). 9/20 ratio — big gap to fill.</div>
+</div>
+
+<!-- WHISPERING HOLLOW — 10 max, no penalty -->
+<div class="dungeon-row theme-forest">
+  <div class="dungeon-label">
+    <div class="dungeon-name">Whispering Hollow</div>
+    <div class="dungeon-depth">Depth B6</div>
+    <span class="penalty-badge penalty-none">✦ NO PENALTY</span>
+  </div>
+  <div class="hearts-container">
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="heart full">❤️</span>
+    <span class="overflow-text" style="color: #55efc4;">+5</span>
+    <span class="ratio-text">10/10</span>
+  </div>
+  <div class="current-lives">
+    <div class="lives-value" style="color: #55efc4;">10</div>
+    <div class="lives-label">/ 10</div>
+  </div>
+  <div class="scenario">5 visible + "+5" (green). 10/10 = full. Mid-range cap, no penalty.</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="notes">
+  <p class="note"><strong>Design decisions (5-heart cap):</strong></p>
+  <p class="note">• <strong>Exactly 5 visible hearts</strong> always — never more, never less (even at 0 lives, 5 empty hearts shown)</p>
+  <p class="note">• <strong>Overflow text</strong> = maxLives - 5 (the hidden pool), colored per dungeon theme</p>
+  <p class="note">• <strong>Ratio text</strong> (e.g. "10/15") always shown in small grey — true lives / true max</p>
+  <p class="note">• <strong>Dim/grey 5th heart</strong> when lives ≥ maxLives - 3 — "close to full, use potions"</p>
+  <p class="note">• <strong>Gold glow on all 5 hearts + gold overflow</strong> when at max — "fully healed, next heal = +50 score"</p>
+  <p class="note">• <strong>No layout break</strong> — the HUD row stays the same width regardless of dungeon</p>
+  <p class="note">• <strong>lives_boost artifact</strong> still works: adds +1 to the dungeon's base maxLives (affects overflow text)</p>
+  <p class="note">• <strong>At 0 lives:</strong> 5 empty hearts + overflow text — still communicates the pool size even when dead</p>
+</div>
+
+</body>
+</html>

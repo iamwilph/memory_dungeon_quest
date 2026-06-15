@@ -100,7 +100,7 @@ class GameState extends ChangeNotifier {
     ),
     'lives_boost': ArtifactDef(
       'Rune of Vitality',
-      'Start with 4 lives instead of 3; increased max life pool (6)',
+      'Start with 4 lives instead of 3; increased max life pool (+1)',
     ),
     'poison_sight': ArtifactDef(
       'Poison Sight Rune',
@@ -340,10 +340,11 @@ class GameState extends ChangeNotifier {
     _isDailyMode = false;
     _seededRandom = null;
     // Apply passive artifacts: max life pool
+    final baseMaxLives = config.maxLives;
     if (_artifactsUnlocked.contains('lives_boost')) {
-      _maxLives = 6;
+      _maxLives = baseMaxLives + 1;
     } else {
-      _maxLives = 5;
+      _maxLives = baseMaxLives;
     }
 
     // Apply passive artifacts: starting stats at run start
@@ -485,10 +486,10 @@ class GameState extends ChangeNotifier {
 
     // Apply passive artifacts
     if (_artifactsUnlocked.contains('lives_boost')) {
-      _maxLives = 6;
+      _maxLives = config.maxLives + 1;
       _lives = 4;
     } else {
-      _maxLives = 5;
+      _maxLives = config.maxLives;
       _lives = 3;
     }
     _coins = 0;
