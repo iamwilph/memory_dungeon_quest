@@ -342,11 +342,19 @@ class _CampaignRoomCard extends StatelessWidget {
                       child: Text('⚠️ MISMATCH PENALTY', style: TextStyle(fontSize: 8, color: Color(0xFFE74C3C))),
                     ),
 
-                  // Locked overlay
+                  // Locked overlay — show a small lock badge aligned to the
+                  // right inside the Column (Positioned is only valid in Stack)
                   if (!isUnlocked)
-                    Positioned(
-                      right: 8, top: 8,
-                      child: const Icon(Icons.lock_open, size: 14, color: Color(0xFFE74C3C)),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: const Icon(
+                          Icons.lock_open,
+                          size: 14,
+                          color: Color(0xFFE74C3C),
+                        ),
+                      ),
                     ),
                 ],
               ),

@@ -54,242 +54,179 @@ class GameHud extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Top Row: Chamber name, Depth and Escape Button
+        // ── Top Row ──────────────────────────────────────────────────────────
+        // Layout: [FLEE] | [Expanded middle] | [mute] [multiplier]
+        // The middle column holds dungeon name, depth, deeper-descent badge,
+        // and all optional badges (modifier + streak) in a Wrap so they never
+        // overflow regardless of how many are active.
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            InkWell(
-              onTap: () => Navigator.pop(context),
-              borderRadius: BorderRadius.circular(4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: theme.hudBorderColor.withValues(alpha: 0.5),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.exit_to_app,
-                      size: 12,
-                      color: Colors.white70,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'FLEE',
-                      style: DungeonTheme.getBodyStyle(
-                        12.0,
-                        Colors.white70,
-                        weight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Column(
-              children: [
-                Text(
-                  gameState.activeDungeon.name.toUpperCase(),
-                  style: DungeonTheme.getBodyStyle(
-                    16.0,
-                    theme.accentColor,
-                    weight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '${gameState.activeDungeon.depth} • ${gameState.levelProgressString}',
-                  textAlign: TextAlign.center,
-                  style: DungeonTheme.getRuneStyle(
-                    14.0,
-                    const Color(0xFFF1C40F),
-                  ),
-                ),
-                if (gameState.isDeeperDescent)
-                  Container(
-                    margin: const EdgeInsets.only(top: 2),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE74C3C).withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: const Color(0xFFE040FB).withValues(alpha: 0.6),
-                      ),
-                    ),
-                    child: Text(
-                      '🔥 DEEPER DESCENT',
-                      style: DungeonTheme.getRuneStyle(
-                        9.0,
-                        const Color(0xFFE040FB),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            // ── Left: Flee button (fixed) ─────────────────────────────────
+            _FleeButton(context: context, theme: theme),
 
-            // Active Modifier Badge (below dungeon name)
-            if (gameState.activeModifier != LevelModifier.none)
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _modifierIcon(gameState.activeModifier),
-                        size: 14,
-                        color: Colors.redAccent,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _modifierName(gameState.activeModifier),
-                        style: DungeonTheme.getRuneStyle(
-                          12.0,
-                          Colors.redAccent,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            // Streak display (below modifier badge, only when active)
-            if (gameState.streakCount > 0)
-              Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: gameState.streakMultiplier > 1.0
-                        ? const Color(0xFFF1C40F).withValues(alpha: 0.3)
-                        : Colors.orange.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: gameState.streakMultiplier > 1.0
-                          ? const Color(0xFFF1C40F)
-                          : Colors.orange,
-                      width: gameState.streakMultiplier >= 2.0 ? 1.5 : 1.0,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('🔥', style: TextStyle(fontSize: 12)),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${gameState.streakCount}',
-                        style: DungeonTheme.getRuneStyle(12.0, Colors.orange),
-                      ),
-                      if (gameState.streakMultiplier > 1.0) ...[
-                        const SizedBox(width: 3),
-                        Text(
-                          '(${gameState.streakMultiplier.toStringAsFixed(1)}x)',
-                          style: DungeonTheme.getRuneStyle(
-                            10.0,
-                            const Color(0xFFF1C40F),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-
-            // Mute toggle button (top-right corner)
-            InkWell(
-              onTap: () {
-                final audio = AudioService();
-                audio.setMuted(!audio.isMuted);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      audio.isMuted ? 'Audio muted' : 'Audio unmuted',
-                    ),
-                    duration: const Duration(seconds: 1),
-                    backgroundColor: Colors.black.withValues(alpha: 0.6),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(4),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: theme.hudBorderColor.withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Icon(
-                  AudioService().isMuted ? Icons.volume_off : Icons.volume_up,
-                  size: 14,
-                  color: AudioService().isMuted
-                      ? Colors.white24
-                      : Colors.white70,
-                ),
-              ),
-            ),
-
-            // Multiplier Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: gameState.scoreMultiplier > 1.0
-                      ? const Color(0xFF3498DB)
-                      : theme.hudBorderColor.withValues(alpha: 0.5),
-                  width: 1,
-                ),
-              ),
-              child: Row(
+            // ── Middle: all dungeon info + optional badges ────────────────
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.flash_on,
-                    size: 12,
-                    color: Color(0xFF3498DB),
-                  ),
-                  const SizedBox(width: 2),
+                  // Dungeon name
                   Text(
-                    '${gameState.scoreMultiplier.toStringAsFixed(1)}x',
+                    gameState.activeDungeon.name.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
                     style: DungeonTheme.getBodyStyle(
-                      12.0,
-                      gameState.scoreMultiplier > 1.0
-                          ? const Color(0xFF3498DB)
-                          : Colors.white70,
+                      16.0,
+                      theme.accentColor,
                       weight: FontWeight.bold,
                     ),
                   ),
+
+                  // Depth + progress
+                  Text(
+                    '${gameState.activeDungeon.depth} • ${gameState.levelProgressString}',
+                    textAlign: TextAlign.center,
+                    style: DungeonTheme.getRuneStyle(
+                      14.0,
+                      const Color(0xFFF1C40F),
+                    ),
+                  ),
+
+                  // "DEEPER DESCENT" badge (only when active)
+                  if (gameState.isDeeperDescent)
+                    Container(
+                      margin: const EdgeInsets.only(top: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE74C3C).withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: const Color(0xFFE040FB).withValues(alpha: 0.6),
+                        ),
+                      ),
+                      child: Text(
+                        '🔥 DEEPER DESCENT',
+                        style: DungeonTheme.getRuneStyle(
+                          9.0,
+                          const Color(0xFFE040FB),
+                        ),
+                      ),
+                    ),
+
+                  // Optional badges: modifier + streak sit in a Wrap so they
+                  // reflow to a second line instead of overflowing horizontally.
+                  if (gameState.activeModifier != LevelModifier.none ||
+                      gameState.streakCount > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          // Modifier badge
+                          if (gameState.activeModifier != LevelModifier.none)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.red.withValues(alpha: 0.6),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _modifierIcon(gameState.activeModifier),
+                                    size: 12,
+                                    color: Colors.redAccent,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _modifierName(gameState.activeModifier),
+                                    style: DungeonTheme.getRuneStyle(
+                                      10.0,
+                                      Colors.redAccent,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // Streak badge
+                          if (gameState.streakCount > 0)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOut,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: gameState.streakMultiplier > 1.0
+                                    ? const Color(0xFFF1C40F)
+                                        .withValues(alpha: 0.3)
+                                    : Colors.orange.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: gameState.streakMultiplier > 1.0
+                                      ? const Color(0xFFF1C40F)
+                                      : Colors.orange,
+                                  width:
+                                      gameState.streakMultiplier >= 2.0 ? 1.5 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    '🔥',
+                                    style: TextStyle(fontSize: 11),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '${gameState.streakCount}',
+                                    style: DungeonTheme.getRuneStyle(
+                                        11.0, Colors.orange),
+                                  ),
+                                  if (gameState.streakMultiplier > 1.0) ...[
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      '(${gameState.streakMultiplier.toStringAsFixed(1)}x)',
+                                      style: DungeonTheme.getRuneStyle(
+                                        9.0,
+                                        const Color(0xFFF1C40F),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
+
+            // ── Right: mute + multiplier (fixed) ─────────────────────────
+            _MuteButton(context: context, theme: theme),
+            const SizedBox(width: 6),
+            _MultiplierBadge(gameState: gameState, theme: theme),
           ],
         ),
+
         const SizedBox(height: 10.0),
 
-        // Stats Row: Hearts, Coins, Score
+        // ── Stats Row: Hearts · Coins · Score ────────────────────────────
         Row(
           children: [
             // Hearts / Lives
@@ -325,7 +262,8 @@ class GameHud extends StatelessWidget {
             Expanded(
               flex: 3,
               child: HudElement(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 seed: 2,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -350,14 +288,16 @@ class GameHud extends StatelessWidget {
             Expanded(
               flex: 3,
               child: HudElement(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 seed: 3,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       'SCORE',
-                      style: DungeonTheme.getBodyStyle(8.0, theme.primaryColor),
+                      style:
+                          DungeonTheme.getBodyStyle(8.0, theme.primaryColor),
                     ),
                     Text(
                       '${gameState.score}',
@@ -374,6 +314,134 @@ class GameHud extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Private sub-widgets  (keep build() methods lean and readable)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FleeButton extends StatelessWidget {
+  final BuildContext context;
+  final DungeonThemeData theme;
+
+  const _FleeButton({required this.context, required this.theme});
+
+  @override
+  Widget build(BuildContext ctx) {
+    return InkWell(
+      onTap: () => Navigator.pop(context),
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: theme.hudBorderColor.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.exit_to_app, size: 12, color: Colors.white70),
+            const SizedBox(width: 4),
+            Text(
+              'FLEE',
+              style: DungeonTheme.getBodyStyle(
+                12.0,
+                Colors.white70,
+                weight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MuteButton extends StatelessWidget {
+  final BuildContext context;
+  final DungeonThemeData theme;
+
+  const _MuteButton({required this.context, required this.theme});
+
+  @override
+  Widget build(BuildContext ctx) {
+    return InkWell(
+      onTap: () {
+        final audio = AudioService();
+        audio.setMuted(!audio.isMuted);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              audio.isMuted ? 'Audio muted' : 'Audio unmuted',
+            ),
+            duration: const Duration(seconds: 1),
+            backgroundColor: Colors.black.withValues(alpha: 0.6),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: theme.hudBorderColor.withValues(alpha: 0.5),
+          ),
+        ),
+        child: Icon(
+          AudioService().isMuted ? Icons.volume_off : Icons.volume_up,
+          size: 14,
+          color: AudioService().isMuted ? Colors.white24 : Colors.white70,
+        ),
+      ),
+    );
+  }
+}
+
+class _MultiplierBadge extends StatelessWidget {
+  final GameState gameState;
+  final DungeonThemeData theme;
+
+  const _MultiplierBadge({required this.gameState, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: gameState.scoreMultiplier > 1.0
+              ? const Color(0xFF3498DB)
+              : theme.hudBorderColor.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.flash_on, size: 12, color: Color(0xFF3498DB)),
+          const SizedBox(width: 2),
+          Text(
+            '${gameState.scoreMultiplier.toStringAsFixed(1)}x',
+            style: DungeonTheme.getBodyStyle(
+              12.0,
+              gameState.scoreMultiplier > 1.0
+                  ? const Color(0xFF3498DB)
+                  : Colors.white70,
+              weight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
