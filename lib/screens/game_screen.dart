@@ -58,8 +58,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    final gameState = Provider.of<GameState>(context, listen: false);
-    gameState.removeListener(_handleStateEffects);
+    try {
+      final gameState = Provider.of<GameState>(context, listen: false);
+      gameState.removeListener(_handleStateEffects);
+    } catch (e) {
+      debugPrint(e.toString());
+    }
     AudioService().stopAmbient();
     _shakeController.dispose();
     _flashController.dispose();
@@ -184,7 +188,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
 
                   // Streak / effect text overlay (appears briefly)
-                  if (gameState.streakCount > 0 && gameState.lastTriggeredEffect == 'streak_broken')
+                  if (gameState.streakCount > 0 &&
+                      gameState.lastTriggeredEffect == 'streak_broken')
                     const _StreakBrokenOverlay(),
 
                   const SizedBox(height: 12.0),
@@ -232,10 +237,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
-                    colors: [
-                      Colors.transparent,
-                      theme.deeperDescentOverlay,
-                    ],
+                    colors: [Colors.transparent, theme.deeperDescentOverlay],
                     radius: 1.2,
                   ),
                 ),
@@ -251,47 +253,46 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             _buildVictoryOverlay(context, gameState, theme),
 
           // 8. Achievement toast overlay (shown briefly after victory)
-          if (gameState.isLevelCleared)
-            const _AchievementToastOverlay(),
+          if (gameState.isLevelCleared) const _AchievementToastOverlay(),
         ],
       ),
     );
   }
 
-// Modifier badge display helpers
-IconData _modifierIcon(LevelModifier mod) {
-  switch (mod) {
-    case LevelModifier.shadow:
-      return Icons.visibility_off;
-    case LevelModifier.timer:
-      return Icons.timelapse;
-    case LevelModifier.swap:
-      return Icons.shuffle;
-    case LevelModifier.sabotage:
-      return Icons.warning_amber_rounded;
-    case LevelModifier.none:
-      break;
+  // Modifier badge display helpers
+  IconData _modifierIcon(LevelModifier mod) {
+    switch (mod) {
+      case LevelModifier.shadow:
+        return Icons.visibility_off;
+      case LevelModifier.timer:
+        return Icons.timelapse;
+      case LevelModifier.swap:
+        return Icons.shuffle;
+      case LevelModifier.sabotage:
+        return Icons.warning_amber_rounded;
+      case LevelModifier.none:
+        break;
+    }
+    return Icons.error_outline;
   }
-  return Icons.error_outline;
-}
 
-String _modifierName(LevelModifier mod) {
-  switch (mod) {
-    case LevelModifier.shadow:
-      return 'SHADOW';
-    case LevelModifier.timer:
-      return 'TIMELIMIT';
-    case LevelModifier.swap:
-      return 'SWAP';
-    case LevelModifier.sabotage:
-      return 'SABOTAGE';
-    case LevelModifier.none:
-      break;
+  String _modifierName(LevelModifier mod) {
+    switch (mod) {
+      case LevelModifier.shadow:
+        return 'SHADOW';
+      case LevelModifier.timer:
+        return 'TIMELIMIT';
+      case LevelModifier.swap:
+        return 'SWAP';
+      case LevelModifier.sabotage:
+        return 'SABOTAGE';
+      case LevelModifier.none:
+        break;
+    }
+    return '';
   }
-  return '';
-}
 
-// Carved HUD Layout
+  // Carved HUD Layout
   Widget _buildHUD(
     BuildContext context,
     GameState gameState,
@@ -357,7 +358,10 @@ String _modifierName(LevelModifier mod) {
                 if (gameState.isDeeperDescent)
                   Container(
                     margin: const EdgeInsets.only(top: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE74C3C).withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(4),
@@ -367,108 +371,133 @@ String _modifierName(LevelModifier mod) {
                     ),
                     child: Text(
                       '🔥 DEEPER DESCENT',
-                      style: DungeonTheme.getRuneStyle(9.0, const Color(0xFFE040FB)),
+                      style: DungeonTheme.getRuneStyle(
+                        9.0,
+                        const Color(0xFFE040FB),
+                      ),
                     ),
                   ),
               ],
             ),
-        
-                        // Active Modifier Badge (below dungeon name)
-                        if (gameState.activeModifier != LevelModifier.none)
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red.withValues(alpha: 0.6)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(_modifierIcon(gameState.activeModifier), size: 14, color: Colors.redAccent),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _modifierName(gameState.activeModifier),
-                                    style: DungeonTheme.getRuneStyle(12.0, Colors.redAccent),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
 
-                        // Streak display (below modifier badge, only when active)
-                        if (gameState.streakCount > 0)
-                          Center(
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOut,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: gameState.streakMultiplier > 1.0
-                                    ? const Color(0xFFF1C40F).withValues(alpha: 0.3)
-                                    : Colors.orange.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: gameState.streakMultiplier > 1.0
-                                      ? const Color(0xFFF1C40F)
-                                      : Colors.orange,
-                                  width: gameState.streakMultiplier >= 2.0 ? 1.5 : 1.0,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text('🔥', style: TextStyle(fontSize: 12)),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${gameState.streakCount}',
-                                    style: DungeonTheme.getRuneStyle(12.0, Colors.orange),
-                                  ),
-                                  if (gameState.streakMultiplier > 1.0) ...[
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      '(${gameState.streakMultiplier.toStringAsFixed(1)}x)',
-                                      style: DungeonTheme.getRuneStyle(10.0, const Color(0xFFF1C40F)),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
+            // Active Modifier Badge (below dungeon name)
+            if (gameState.activeModifier != LevelModifier.none)
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _modifierIcon(gameState.activeModifier),
+                        size: 14,
+                        color: Colors.redAccent,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _modifierName(gameState.activeModifier),
+                        style: DungeonTheme.getRuneStyle(
+                          12.0,
+                          Colors.redAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-                        // Mute toggle button (top-right corner)
-                        InkWell(
-                          onTap: () {
-                            final audio = AudioService();
-                            audio.setMuted(!audio.isMuted);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(audio.isMuted ? 'Audio muted' : 'Audio unmuted'),
-                                duration: const Duration(seconds: 1),
-                                backgroundColor: Colors.black.withValues(alpha: 0.6),
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(4),
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: theme.hudBorderColor.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: Icon(
-                              AudioService().isMuted ? Icons.volume_off : Icons.volume_up,
-                              size: 14,
-                              color: AudioService().isMuted ? Colors.white24 : Colors.white70,
-                            ),
+            // Streak display (below modifier badge, only when active)
+            if (gameState.streakCount > 0)
+              Center(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: gameState.streakMultiplier > 1.0
+                        ? const Color(0xFFF1C40F).withValues(alpha: 0.3)
+                        : Colors.orange.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: gameState.streakMultiplier > 1.0
+                          ? const Color(0xFFF1C40F)
+                          : Colors.orange,
+                      width: gameState.streakMultiplier >= 2.0 ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🔥', style: TextStyle(fontSize: 12)),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${gameState.streakCount}',
+                        style: DungeonTheme.getRuneStyle(12.0, Colors.orange),
+                      ),
+                      if (gameState.streakMultiplier > 1.0) ...[
+                        const SizedBox(width: 3),
+                        Text(
+                          '(${gameState.streakMultiplier.toStringAsFixed(1)}x)',
+                          style: DungeonTheme.getRuneStyle(
+                            10.0,
+                            const Color(0xFFF1C40F),
                           ),
                         ),
-        
-        // Multiplier Badge
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+            // Mute toggle button (top-right corner)
+            InkWell(
+              onTap: () {
+                final audio = AudioService();
+                audio.setMuted(!audio.isMuted);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      audio.isMuted ? 'Audio muted' : 'Audio unmuted',
+                    ),
+                    duration: const Duration(seconds: 1),
+                    backgroundColor: Colors.black.withValues(alpha: 0.6),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: theme.hudBorderColor.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Icon(
+                  AudioService().isMuted ? Icons.volume_off : Icons.volume_up,
+                  size: 14,
+                  color: AudioService().isMuted
+                      ? Colors.white24
+                      : Colors.white70,
+                ),
+              ),
+            ),
+
+            // Multiplier Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -966,14 +995,13 @@ String _modifierName(LevelModifier mod) {
                               10.0,
                               Colors.white,
                               weight: FontWeight.bold,
-                              
                             ),
                             textAlign: TextAlign.center,
                           ),
                         ),
                       ),
                       const SizedBox(width: 12.0),
-                      
+
                       // Shop Button (Phase 3)
                       Expanded(
                         child: ElevatedButton(
@@ -1011,7 +1039,7 @@ String _modifierName(LevelModifier mod) {
                         ),
                       ),
                       const SizedBox(width: 12.0),
-                      
+
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
@@ -1102,7 +1130,6 @@ String _modifierName(LevelModifier mod) {
       ),
     );
   }
-
 }
 
 // ─── Achievement Toast Overlay ────────────────────────────
@@ -1111,7 +1138,8 @@ class _AchievementToastOverlay extends StatefulWidget {
   const _AchievementToastOverlay();
 
   @override
-  State<_AchievementToastOverlay> createState() => _AchievementToastOverlayState();
+  State<_AchievementToastOverlay> createState() =>
+      _AchievementToastOverlayState();
 }
 
 class _AchievementToastOverlayState extends State<_AchievementToastOverlay>
@@ -1267,7 +1295,8 @@ class _StreakMilestoneOverlay extends StatefulWidget {
   const _StreakMilestoneOverlay({required this.streakCount});
 
   @override
-  State<_StreakMilestoneOverlay> createState() => _StreakMilestoneOverlayState();
+  State<_StreakMilestoneOverlay> createState() =>
+      _StreakMilestoneOverlayState();
 }
 
 class _StreakMilestoneOverlayState extends State<_StreakMilestoneOverlay>
@@ -1311,7 +1340,9 @@ class _StreakMilestoneOverlayState extends State<_StreakMilestoneOverlay>
               '🔥 Streak Milestone!',
               style: GoogleFonts.cinzel(
                 fontSize: 18,
-                color: const Color(0xFFF1C40F).withValues(alpha: (1.0 - value) * 0.9),
+                color: const Color(
+                  0xFFF1C40F,
+                ).withValues(alpha: (1.0 - value) * 0.9),
                 fontWeight: FontWeight.bold,
               ),
             ),

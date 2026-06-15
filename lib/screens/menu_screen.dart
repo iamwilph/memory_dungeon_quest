@@ -13,9 +13,26 @@ import 'shop_screen.dart';
 import 'campaign_map_screen.dart';
 import 'achievements_screen.dart';
 import 'daily_challenge_screen.dart';
+import 'tutorial_hint.dart';
 
-class MenuScreen extends StatelessWidget {
+class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
+
+  @override
+  State<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends State<MenuScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Show tutorial on first launch after dependencies are loaded
+    if (!hasTutorialBeenSeen()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showTutorialIfNeeded(context);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

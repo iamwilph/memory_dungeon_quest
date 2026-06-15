@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/game_state.dart';
 import 'screens/menu_screen.dart';
+import 'screens/tutorial_hint.dart';
 import 'services/local_campaign_progress_store.dart';
 import 'services/audio_service.dart';
 import 'services/high_score_service.dart';
@@ -30,8 +31,22 @@ Future<void> main() async {
   );
 }
 
-class MemoryDungeonApp extends StatelessWidget {
+class MemoryDungeonApp extends StatefulWidget {
   const MemoryDungeonApp({super.key});
+
+  @override
+  State<MemoryDungeonApp> createState() => _MemoryDungeonAppState();
+}
+
+class _MemoryDungeonAppState extends State<MemoryDungeonApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Show tutorial on first launch (after the app frame is ready)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // showTutorialIfNeeded(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
