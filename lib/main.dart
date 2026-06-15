@@ -3,10 +3,22 @@ import 'package:provider/provider.dart';
 import 'models/game_state.dart';
 import 'screens/menu_screen.dart';
 import 'services/local_campaign_progress_store.dart';
+import 'services/audio_service.dart';
+import 'services/high_score_service.dart';
+import 'services/achievement_manager.dart';
 
-void main() {
+Future<void> main() async {
   // Ensure widget bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize audio service (non-blocking — SFX may not be ready yet)
+  AudioService().init();
+  
+  // Initialize high score service
+  await HighScoreService().init();
+  
+  // Initialize achievement manager
+  AchievementManager().init();
   
   runApp(
     ChangeNotifierProvider(

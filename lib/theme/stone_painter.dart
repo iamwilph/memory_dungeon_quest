@@ -9,6 +9,7 @@ class StonePainter extends CustomPainter {
   final bool drawCracks;
   final int seed;
   final Color? themeAccent; // Optional theme accent to tint the cracks
+  final String? cardBackStyle; // Dungeon theme name for card back rune pattern (e.g., 'stone', 'lava', 'ice')
 
   StonePainter({
     required this.bgColor,
@@ -19,6 +20,7 @@ class StonePainter extends CustomPainter {
     this.drawCracks = true,
     this.seed = 0,
     this.themeAccent, // optional - tints cracks with dungeon color
+    this.cardBackStyle, // optional - card back rune style
   });
 
   @override
@@ -138,6 +140,48 @@ class StonePainter extends CustomPainter {
       ..strokeWidth = borderWidth
       ..style = PaintingStyle.stroke;
     canvas.drawRRect(rrect, borderPaint);
+
+    // 6. Draw card back rune pattern (if cardBackStyle is set)
+    if (cardBackStyle != null) {
+      _drawCardBackRune(canvas, size, cardBackStyle!);
+    }
+  }
+
+  /// Draws a dungeon-themed rune in the center of the card back
+  void _drawCardBackRune(Canvas canvas, Size size, String style) {
+    final center = Offset(size.width / 2, size.height / 2);
+
+    // Subtle circle behind rune
+    final circlePaint = Paint()
+      ..color = const Color(0xFF1A272F).withValues(alpha: 0.5)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, size.width * 0.2, circlePaint);
+
+    // Rune character based on dungeon style
+    String rune;
+    switch (style) {
+      case 'lava': rune = 'ᛏ'; break; // Teiwaz (Tyr's sword)
+      case 'ice': rune = 'ᚠ'; break; // Fehu (frost/wealth)
+      case 'crypt': rune = 'ᚦ'; break; // Thurisaz (giant/door)
+      case 'voidChamber': rune = 'ᛗ'; break; // Mannaz (humanity void)
+      case 'forest': rune = 'ᛚ'; break; // Laguz (flow/nature)
+      default: rune = 'ᛊ'; break; // Sowulo (sun/victory) — stone
+    }
+
+    final runeStyle = TextStyle(
+      fontSize: size.width * 0.12,
+      color: const Color(0xFFF1C40F).withValues(alpha: 0.3),
+      fontFamily: 'Cinzel',
+    );
+
+    final textSpan = TextSpan(text: rune, style: runeStyle);
+    final tp = TextPainter(
+      text: textSpan,
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+    tp.layout();
+    tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
   }
 
   @override
@@ -146,6 +190,7 @@ class StonePainter extends CustomPainter {
         oldDelegate.borderColor != borderColor ||
         oldDelegate.crackColor != crackColor ||
         oldDelegate.themeAccent != themeAccent ||
+        oldDelegate.cardBackStyle != cardBackStyle ||
         oldDelegate.borderWidth != borderWidth ||
         oldDelegate.borderRadius != borderRadius ||
         oldDelegate.drawCracks != drawCracks ||

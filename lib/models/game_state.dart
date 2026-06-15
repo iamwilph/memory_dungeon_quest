@@ -2,9 +2,13 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../services/campaign_progress_store.dart';
+import '../services/audio_service.dart';
+import '../services/high_score_service.dart';
+import '../services/achievement_manager.dart';
 import 'campaign_progress.dart';
 import 'dungeon_card.dart';
 import 'dungeon_config.dart';
+import 'daily_challenge.dart';
 
 /// Artifact definition: a passive bonus unlocked by the player.
 class ArtifactDef {
@@ -38,6 +42,35 @@ class GameState extends ChangeNotifier {
   // Level modifier state (Phase 2)
   LevelModifier _activeModifier = LevelModifier.none;
   int _flipCountSinceLastSwap = 0;
+
+  // Combo / Streak state (Phase 2)
+  int _streakCount = 0;
+  double _streakMultiplier = 1.0;
+  static const int _maxStreak = 10;
+
+  // Level victory stats tracking (Phase 8)
+  int _mismatchesThisLevel = 0;
+  int _peakStreakThisLevel = 0;
+  int _poisonsMatchedThisLevel = 0;
+  int _healsReceivedThisLevel = 0;
+  int _gemsMatchedThisLevel = 0;
+  int _scrollsMatchedThisLevel = 0;
+  int _treasuresMatchedThisLevel = 0;
+
+  // Daily Challenge state (Phase 4)
+  DailyChallenge? _dailyChallenge;
+  bool _isDailyMode = false;
+  final List<DailyChallengeProgress> _dailyChallengeHistory = [];
+  Random? _seededRandom;
+
+  // Deeper Descent / New Game+ state (Phase 7)
+  bool _deeperDescentUnlocked = false;
+  bool _isDeeperDescent = false;
+  int _deeperDescentLevel = 0;
+
+  // QoL: Pause & Colorblind mode (Phase 6/9)
+  bool _isPaused = false;
+  bool _colorBlindMode = false;
   
   // Timer modifier: auto-flips back card after N seconds
   Timer? _timerFlipBack;
@@ -87,6 +120,53 @@ class GameState extends ChangeNotifier {
 
   /// Total coins earned across current run
   int get totalCoins => _totalCoins + _coins;
+
+  // Streak getters (Phase 2)
+  int get streakCount => _streakCount;
+  double get streakMultiplier => _streakMultiplier;
+
+  // Victory Stats (Phase 8)
+  Map<String, dynamic> get victoryStats => {
+    'score': _score,
+    'coinsEarned': _activeDungeon.getRewardCoinsForLevel(_currentLevel),
+    'streakPeak': _peakStreakThisLevel,
+    'mismatches': _mismatchesThisLevel,
+    'poisonsMatched': _poisonsMatchedThisLevel,
+    'healsReceived': _healsReceivedThisLevel,
+    'gemsMatched': _gemsMatchedThisLevel,
+    'scrollsMatched': _scrollsMatchedThisLevel,
+    'treasuresMatched': _treasuresMatchedThisLevel,
+  };
+
+  // Daily Challenge getters
+  DailyChallenge? get dailyChallenge => _dailyChallenge;
+  bool get isDailyMode => _isDailyMode;
+  List<DailyChallengeProgress> get dailyChallengeHistory => _dailyChallengeHistory;
+
+  // Deeper Descent getters
+  bool get deeperDescentUnlocked => _deeperDescentUnlocked;
+  bool get isDeeperDescent => _isDeeperDescent;
+  int get deeperDescentLevel => _deeperDescentLevel;
+
+  // QoL getters
+  bool get isPaused => _isPaused;
+  bool get colorBlindMode => _colorBlindMode;
+
+  /// Toggle pause state. Cancels timer-modifier auto-flips while paused.
+  void togglePause() {
+    _isPaused = !_isPaused;
+    if (_isPaused) {
+      _timerFlipBack?.cancel();
+      _timerFlipBack = null;
+    }
+    notifyListeners();
+  }
+
+  /// Enable or disable colorblind mode (symbol overlays on cards).
+  void setColorBlind(bool enabled) {
+    _colorBlindMode = enabled;
+    notifyListeners();
+  }
 
   /// Purchases an artifact if the player has enough coins.
   /// Returns true if purchase was successful, false otherwise.
@@ -155,6 +235,8 @@ class GameState extends ChangeNotifier {
   void _flushGame() {
     _disposeModifierTimers();
     _selectedIndices.clear();
+    _streakCount = 0;
+    _streakMultiplier = 1.0;
   }
 
   bool get isGameOver => _isGameOver;
@@ -165,15 +247,53 @@ class GameState extends ChangeNotifier {
   int get currentLevel => _currentLevel;
   Map<int, int> get dungeonLevelProgress => _dungeonLevelProgress;
 
-  // Dynamic grid getters for active dungeon + level
-  int get activeRows =>
-      _activeDungeon.getGridSizeForLevel(_currentLevel)['rows']!;
-  int get activeCols =>
-      _activeDungeon.getGridSizeForLevel(_currentLevel)['cols']!;
-  int get activeTotalPairs =>
-      _activeDungeon.getTotalPairsForLevel(_currentLevel);
-  bool get activeMismatchPenalty =>
-      _activeDungeon.getMismatchPenaltyForLevel(_currentLevel);
+  // Dynamic grid getters for active dungeon + level (overridden in daily / deeper descent mode)
+  int get activeRows {
+    if (_isDailyMode && _dailyChallenge != null) {
+      final pairs = _dailyChallenge!.baseGridSize;
+      if (pairs == 6) return 4;
+      if (pairs == 7) return 4;
+      if (pairs == 8) return 4;
+      if (pairs == 9) return 6;
+    }
+    if (_isDeeperDescent) {
+      return _activeDungeon.deeperDescentRows(_currentLevel);
+    }
+    return _activeDungeon.getGridSizeForLevel(_currentLevel)['rows']!;
+  }
+
+  int get activeCols {
+    if (_isDailyMode && _dailyChallenge != null) {
+      final pairs = _dailyChallenge!.baseGridSize;
+      if (pairs == 6) return 3;
+      if (pairs == 7) return 4;
+      if (pairs == 8) return 4;
+      if (pairs == 9) return 3;
+    }
+    if (_isDeeperDescent) {
+      return _activeDungeon.deeperDescentCols(_currentLevel);
+    }
+    return _activeDungeon.getGridSizeForLevel(_currentLevel)['cols']!;
+  }
+
+  int get activeTotalPairs {
+    if (_isDailyMode && _dailyChallenge != null) {
+      return _dailyChallenge!.baseGridSize;
+    }
+    if (_isDeeperDescent) {
+      return _activeDungeon.getDeepTotalPairsForLevel(_currentLevel);
+    }
+    return _activeDungeon.getTotalPairsForLevel(_currentLevel);
+  }
+
+  bool get activeMismatchPenalty {
+    if (_isDailyMode && _dailyChallenge != null) {
+      return _dailyChallenge!.hasMismatchPenalty;
+    }
+    // Deeper Descent always has mismatch penalty
+    if (_isDeeperDescent) return true;
+    return _activeDungeon.getMismatchPenaltyForLevel(_currentLevel);
+  }
 
   /// Whether current level is the last in this chamber
   bool get isLastLevelInChamber =>
@@ -217,6 +337,8 @@ class GameState extends ChangeNotifier {
     bool resetStats = false,
     int startLevel = 1,
   }) {
+    _isDailyMode = false;
+    _seededRandom = null;
     // Apply passive artifacts: max life pool
     if (_artifactsUnlocked.contains('lives_boost')) {
       _maxLives = 6;
@@ -242,6 +364,15 @@ class GameState extends ChangeNotifier {
 
     _activeDungeon = config;
     _currentLevel = startLevel.clamp(1, DungeonConfig.levelsPerDungeon).toInt();
+
+    // Reset level stats
+    _mismatchesThisLevel = 0;
+    _peakStreakThisLevel = 0;
+    _poisonsMatchedThisLevel = 0;
+    _healsReceivedThisLevel = 0;
+    _gemsMatchedThisLevel = 0;
+    _scrollsMatchedThisLevel = 0;
+    _treasuresMatchedThisLevel = 0;
     
     // Set active modifier for this level
     _activeModifier = config.getModifierForLevel(_currentLevel);
@@ -292,6 +423,104 @@ class GameState extends ChangeNotifier {
     initDungeon(config, startLevel: startLevel);
   }
 
+  void initDailyLevel(int levelIndex) {
+    _isDailyMode = true;
+    _dailyChallenge = DailyChallenge.getToday();
+    
+    // Seeded random for determinism
+    _seededRandom = Random(_dailyChallenge!.seed + levelIndex);
+    
+    // Override active modifier with daily modifier(s)
+    _activeModifier = _dailyChallenge!.modifiers.isNotEmpty
+        ? _dailyChallenge!.modifiers.first
+        : LevelModifier.none;
+    
+    final dungeon = DungeonConfig.dungeons.firstWhere(
+      (d) => d.id.startsWith(_dailyChallenge!.dungeonId),
+      orElse: () => DungeonConfig.dungeons[0],
+    );
+    
+    _activeDungeon = dungeon;
+    _currentLevel = 1;
+    
+    // Setup lives/coins
+    _lives = 3;
+    if (_artifactsUnlocked.contains('lives_boost')) _lives = 4;
+    _coins = 0;
+    _score = 0;
+    _scoreMultiplier = 1.0;
+    _hintCharges = 1;
+    if (_artifactsUnlocked.contains('extra_hint')) _hintCharges++;
+    
+    _flipCountSinceLastSwap = 0;
+    _selectedIndices.clear();
+    _isLocked = false;
+    _isGameOver = false;
+    _isLevelCleared = false;
+    _isPreviewingPuzzle = false;
+    _lastTriggeredEffect = null;
+    
+    // Reset level stats
+    _mismatchesThisLevel = 0;
+    _peakStreakThisLevel = 0;
+    _poisonsMatchedThisLevel = 0;
+    _healsReceivedThisLevel = 0;
+    _gemsMatchedThisLevel = 0;
+    _scrollsMatchedThisLevel = 0;
+    _treasuresMatchedThisLevel = 0;
+    
+    _generateCards();
+    _startPuzzlePreview();
+  }
+
+  /// Initialize Deeper Descent mode (NG+) starting at dungeon index 0.
+  void initDeeperDescent() {
+    _isDeeperDescent = true;
+    _isDailyMode = false;
+    _seededRandom = null;
+    _deeperDescentLevel++;
+
+    // Start from Stone Chamber with escalated grids
+    final config = DungeonConfig.dungeons[0];
+
+    // Apply passive artifacts
+    if (_artifactsUnlocked.contains('lives_boost')) {
+      _maxLives = 6;
+      _lives = 4;
+    } else {
+      _maxLives = 5;
+      _lives = 3;
+    }
+    _coins = 0;
+    _score = 0;
+    _scoreMultiplier = 1.0;
+    _hintCharges = 1;
+    if (_artifactsUnlocked.contains('extra_hint')) _hintCharges++;
+
+    _activeDungeon = config;
+    _currentLevel = 1;
+
+    _mismatchesThisLevel = 0;
+    _peakStreakThisLevel = 0;
+    _poisonsMatchedThisLevel = 0;
+    _healsReceivedThisLevel = 0;
+    _gemsMatchedThisLevel = 0;
+    _scrollsMatchedThisLevel = 0;
+    _treasuresMatchedThisLevel = 0;
+
+    _activeModifier = config.getModifierForLevel(_currentLevel);
+    _flipCountSinceLastSwap = 0;
+    _selectedIndices.clear();
+    _isLocked = false;
+    _isGameOver = false;
+    _isLevelCleared = false;
+    _isPreviewingPuzzle = false;
+    _lastTriggeredEffect = null;
+
+    _generateCards();
+    _startPuzzlePreview();
+  }
+
   /// Advance to next level within the same dungeon
   void advanceToNextLevel() {
     _disposeModifierTimers();
@@ -306,6 +535,15 @@ class GameState extends ChangeNotifier {
     _lastTriggeredEffect = null;
     _scoreMultiplier = 1.0;
 
+    // Reset level stats
+    _mismatchesThisLevel = 0;
+    _peakStreakThisLevel = 0;
+    _poisonsMatchedThisLevel = 0;
+    _healsReceivedThisLevel = 0;
+    _gemsMatchedThisLevel = 0;
+    _scrollsMatchedThisLevel = 0;
+    _treasuresMatchedThisLevel = 0;
+
     _generateCards();
     _startPuzzlePreview();
   }
@@ -315,6 +553,7 @@ class GameState extends ChangeNotifier {
     _disposeModifierTimers();
     _unlockedDungeonIndex = 0;
     _dungeonLevelProgress.clear();
+    _dailyChallengeHistory.clear();
     initDungeon(DungeonConfig.dungeons[0], resetStats: true);
     unawaited(_clearCampaignProgress());
   }
@@ -336,7 +575,7 @@ class GameState extends ChangeNotifier {
       final hiddenPairs = (totalPairsRaw ~/ 4).clamp(1, 3);
       totalPairs -= hiddenPairs;
     }
-    final random = Random();
+    final random = _seededRandom ?? Random();
 
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       final deckAssets = <String>[];
@@ -519,11 +758,14 @@ class GameState extends ChangeNotifier {
 
   // Flip a card
   void flipCard(int index) {
-    if (_isLocked || _isGameOver || _isLevelCleared) return;
+    if (_isPaused || _isLocked || _isGameOver || _isLevelCleared) return;
     if (index < 0 || index >= _cards.length) return;
 
     final card = _cards[index];
     if (card.isFlipped || card.isMatched) return;
+
+    // Play flip sound
+    AudioService().playSfx('sfx/flip.wav');
 
     // Flip the card
     card.isFlipped = true;
@@ -639,18 +881,46 @@ class GameState extends ChangeNotifier {
       // Trigger effects based on item card type
       _applyMatchEffects(card1.type);
 
-      // Calculate score: base score of 100 * dungeon multiplier * current multiplier
+      _streakCount++;
+      _streakMultiplier = (1.0 + (min(_streakCount, _maxStreak) ~/ 3) * 0.5).clamp(1.0, 3.0);
+      if (_streakCount > _peakStreakThisLevel) {
+        _peakStreakThisLevel = _streakCount;
+      }
+
+      final ach = AchievementManager();
+      if (_streakCount == 5) {
+        ach.increment('streak_5', 1);
+      } else if (_streakCount == 10) {
+        ach.increment('streak_10', 1);
+      }
+
+      // Calculate score: base score of 100 * dungeon multiplier * current multiplier * streak multiplier
       final dungeonMult = _activeDungeon.getScoreMultiplierForLevel(
         _currentLevel,
       );
-      final addedScore = (100 * dungeonMult * _scoreMultiplier).round();
+      final addedScore = (100 * dungeonMult * _scoreMultiplier * _streakMultiplier).round();
       _score += addedScore;
+      ach.increment('score_50k', addedScore);
+
+      // If we hit a milestone (3, 6, 9) and the level isn't cleared, trigger milestone effect
+      final isSolved = _isPuzzleSolved();
+      if (!isSolved) {
+        if (_streakCount == 3 || _streakCount == 6 || _streakCount == 9) {
+          _lastTriggeredEffect = 'streak_milestone';
+        }
+      }
 
       _completeLevelIfSolved();
     } else {
       // MISMATCH!
       card1.isFlipped = false;
       card2.isFlipped = false;
+
+      _mismatchesThisLevel++;
+      _streakCount = 0;
+      _streakMultiplier = 1.0;
+      _lastTriggeredEffect = 'streak_broken';
+      AudioService().playSfx('sfx/mismatch.wav');
 
       // Optional mismatch penalty: lose a life if configured for the dungeon+level
       if (activeMismatchPenalty) {
@@ -661,9 +931,11 @@ class GameState extends ChangeNotifier {
           _isGameOver = true;
           _flushGame();
           _lastTriggeredEffect = 'game_over';
+          AudioService().playSfx('sfx/gameover.wav');
+          if (_isDailyMode && _dailyChallenge != null) {
+            _recordDailyFailure();
+          }
         }
-      } else {
-        _lastTriggeredEffect = 'mismatch';
       }
 
       _completeLevelIfSolved();
@@ -677,9 +949,15 @@ class GameState extends ChangeNotifier {
   bool _completeLevelIfSolved() {
     if (_isLevelCleared || _isGameOver || !_isPuzzleSolved()) return false;
 
+    // Award bonus coins for long streaks
+    if (_streakCount >= 5) {
+      _coins += _streakCount;
+    }
+
     _flushGame();
     _lastTriggeredEffect = 'victory';
     _isLevelCleared = true;
+    AudioService().playSfx('sfx/victory.wav');
 
     final currentDungeonIdx = DungeonConfig.dungeons.indexWhere(
       (d) => d.id == _activeDungeon.id,
@@ -698,7 +976,64 @@ class GameState extends ChangeNotifier {
       }
     }
 
-    _coins += _activeDungeon.getRewardCoinsForLevel(_currentLevel);
+    final coinsReward = _activeDungeon.getRewardCoinsForLevel(_currentLevel);
+    _coins += coinsReward;
+
+    // High Score tracking
+    HighScoreService().recordScore(_activeDungeon.id, _currentLevel - 1, _score);
+
+    // Achievements tracking
+    final ach = AchievementManager();
+
+    // Save daily challenge progress if in daily mode
+    if (_isDailyMode && _dailyChallenge != null) {
+      final todayStr = DailyChallenge.truncateToMidnight(DateTime.now()).toString();
+      _dailyChallengeHistory.removeWhere((h) => h.date == todayStr);
+      _dailyChallengeHistory.add(DailyChallengeProgress(
+        date: todayStr,
+        score: _score,
+        isCompleted: true,
+        livesRemaining: _lives,
+      ));
+      _coins += 10;
+      ach.increment('coins_500', 10);
+    }
+    ach.increment('first_blood', 1);
+    ach.increment('coins_500', coinsReward);
+
+    if (_mismatchesThisLevel == 0) {
+      ach.increment('perfect_run', 1);
+    }
+    if (_lives == 1) {
+      ach.increment('lives_0', 1);
+    }
+
+    if (_currentLevel >= DungeonConfig.levelsPerDungeon && currentDungeonIdx != -1) {
+      ach.increment('first_dungeon', 1);
+      
+      var clearedCount = 0;
+      for (var i = 0; i < DungeonConfig.dungeons.length; i++) {
+        final cleared = _dungeonLevelProgress[i] ?? 0;
+        final isThisDungeon = i == currentDungeonIdx;
+        if (cleared >= DungeonConfig.levelsPerDungeon || isThisDungeon) {
+          clearedCount++;
+        }
+      }
+      if (clearedCount == DungeonConfig.dungeons.length) {
+        ach.increment('all_dungeons', 1);
+        // Unlock Deeper Descent when all 6 chambers are fully cleared
+        if (!_deeperDescentUnlocked) {
+          _deeperDescentUnlocked = true;
+        }
+      }
+
+      if (_activeDungeon.id == 'lava_chamber') {
+        ach.increment('lava_veteran', 1);
+      } else if (_activeDungeon.id == 'crypt_chamber') {
+        ach.increment('crypt_veteran', 1);
+      }
+    }
+
     unawaited(_saveCampaignProgress());
     notifyListeners();
     return true;
@@ -717,10 +1052,13 @@ class GameState extends ChangeNotifier {
     return unmatchedCards.every((card) => card.type == CardType.poison);
   }
 
-  // Applies side effects based on matched tile types
   void _applyMatchEffects(CardType type) {
+    final audio = AudioService();
+    final ach = AchievementManager();
     switch (type) {
       case CardType.poison:
+        audio.playSfx('sfx/poison.wav');
+        _poisonsMatchedThisLevel++;
         // Poison costs a life, but PURIFIES one adjacent poison card from the board.
         _lives--;
         _lastTriggeredEffect = 'poison';
@@ -739,28 +1077,41 @@ class GameState extends ChangeNotifier {
           _isGameOver = true;
           _flushGame();
           _lastTriggeredEffect = 'game_over';
+          audio.playSfx('sfx/gameover.wav');
+          if (_isDailyMode && _dailyChallenge != null) {
+            _recordDailyFailure();
+          }
         }
         break;
 
       case CardType.healing:
+        audio.playSfx('sfx/heal.wav');
+        _healsReceivedThisLevel++;
         if (_lives < _maxLives) {
           _lives++;
           _lastTriggeredEffect = 'heal';
         } else {
           // Full health: convert to bonus score instead of healing
           _score += 50;
+          ach.increment('score_50k', 50);
           _lastTriggeredEffect = 'heal_overflow';
         }
         break;
 
       case CardType.treasure:
-        // Coins already awarded in _completeLevelIfSolved; reward a small scaling bonus here
-        _coins += 1 + (_currentLevel ~/ 5); // Scaling micro-bonus per dungeon depth
+        audio.playSfx('sfx/treasure.wav');
+        _treasuresMatchedThisLevel++;
+        final treasureCoins = 1 + (_currentLevel ~/ 5);
+        _coins += treasureCoins;
+        ach.increment('coins_500', treasureCoins);
         _lastTriggeredEffect = 'treasure';
         break;
 
       case CardType.scroll:
+        audio.playSfx('sfx/scroll.wav');
+        _scrollsMatchedThisLevel++;
         _hintCharges++;
+        ach.increment('scrolls_10', 1);
 
         // Reveal a known-but-unmatched pair and auto-match it after 1 second.
         final unmatched = _cards.where((c) => !c.isMatched && !c.isFlipped).toList();
@@ -795,7 +1146,10 @@ class GameState extends ChangeNotifier {
         break;
 
       case CardType.gem:
+        audio.playSfx('sfx/gem.wav');
+        _gemsMatchedThisLevel++;
         _scoreMultiplier += 0.5;
+        ach.increment('gems_100', 1);
 
         // Shatter one remaining poison from the board (it's permanently removed).
         final remainingPoisons =
@@ -807,10 +1161,12 @@ class GameState extends ChangeNotifier {
         } else {
           // No poisons to shatter: bonus score instead.
           _score += 75;
+          ach.increment('score_50k', 75);
         }
         break;
 
       case CardType.normal:
+        audio.playSfx('sfx/match.wav');
         // Normal tiles just add a small score bonus for being matched.
         _score += 10;
         break;
@@ -827,6 +1183,7 @@ class GameState extends ChangeNotifier {
     _hintCharges--;
     _isLocked = true;
     _lastTriggeredEffect = 'hint_activate';
+    AchievementManager().increment('hint_20', 1);
     notifyListeners();
 
     // Find unmatched, face-down cards
@@ -890,6 +1247,9 @@ class GameState extends ChangeNotifier {
       hintCharges: _hintCharges,
       totalCoins: _totalCoins + _coins, // accumulate run coins into lifetime
       artifactsUnlocked: Set<String>.from(_artifactsUnlocked),
+      dailyChallengeHistory: List<DailyChallengeProgress>.from(_dailyChallengeHistory),
+      deeperDescentUnlocked: _deeperDescentUnlocked,
+      deeperDescentLevel: _deeperDescentLevel,
     );
   }
 
@@ -917,8 +1277,29 @@ class GameState extends ChangeNotifier {
     // Merge artifacts unlocked previously
     _artifactsUnlocked.addAll(saved.artifactsUnlocked);
 
+    // Load daily history
+    _dailyChallengeHistory.clear();
+    _dailyChallengeHistory.addAll(saved.dailyChallengeHistory);
+
+    // Load Deeper Descent state
+    _deeperDescentUnlocked = saved.deeperDescentUnlocked;
+    _deeperDescentLevel = saved.deeperDescentLevel;
+
     // Start the player at their last active dungeon/level
     resumeCampaign();
+  }
+
+  void _recordDailyFailure() {
+    if (_dailyChallenge == null) return;
+    final todayStr = DailyChallenge.truncateToMidnight(DateTime.now()).toString();
+    _dailyChallengeHistory.removeWhere((h) => h.date == todayStr);
+    _dailyChallengeHistory.add(DailyChallengeProgress(
+      date: todayStr,
+      score: _score,
+      isCompleted: false,
+      livesRemaining: 0,
+    ));
+    unawaited(_saveCampaignProgress());
   }
 
   Map<int, int> _sanitizeLevelProgress(Map<int, int> progress) {

@@ -2041,3 +2041,7 @@ After implementing all phases:
 5. **Forest Chamber identity** — Does it need a complete re-theme, or is the emoji pool + grid difference enough for a unique feel?
 
 6. **Should there be co-op/local two-player?** — Out of scope for this plan but would be a fun future addition (alternating turns on the same board).
+
+---
+
+run flutter analyze every after phase to check for errors

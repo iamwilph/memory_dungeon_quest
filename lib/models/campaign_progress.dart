@@ -1,4 +1,5 @@
 import 'dungeon_config.dart';
+import 'daily_challenge.dart';
 
 class CampaignProgress {
   final int unlockedDungeonIndex;
@@ -11,6 +12,9 @@ class CampaignProgress {
   // Shop / artifact fields (persisted across runs)
   final int totalCoins;       // Lifetime coins earned across all runs (v2+)
   final Set<String> artifactsUnlocked; // e.g. {'extra_hint', 'lives_boost'}
+  final List<DailyChallengeProgress> dailyChallengeHistory; // (v3+)
+  final bool deeperDescentUnlocked; // (v4+)
+  final int deeperDescentLevel;     // (v4+) current NG+ level (0 = not started)
 
   const CampaignProgress({
     required this.unlockedDungeonIndex,
@@ -21,6 +25,9 @@ class CampaignProgress {
     required this.hintCharges,
     required this.totalCoins,
     required this.artifactsUnlocked,
+    this.dailyChallengeHistory = const [],
+    this.deeperDescentUnlocked = false,
+    this.deeperDescentLevel = 0,
   });
 
   factory CampaignProgress.fromJson(Map<String, Object?> json) {
@@ -46,6 +53,16 @@ class CampaignProgress {
       artifacts = {}; // v1 migration: no artifacts
     }
 
+    final rawDailyHistory = json['dailyChallengeHistory'];
+    final List<DailyChallengeProgress> dailyHistory;
+    if (rawDailyHistory is List) {
+      dailyHistory = rawDailyHistory
+          .map((e) => DailyChallengeProgress.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } else {
+      dailyHistory = [];
+    }
+
     return CampaignProgress(
       unlockedDungeonIndex: _readInt(json['unlockedDungeonIndex']),
       dungeonLevelProgress: progress,
@@ -55,12 +72,15 @@ class CampaignProgress {
       hintCharges: _readInt(json['hintCharges'], fallback: 1),
       totalCoins: _readInt(json['totalCoins'], fallback: 0), // v1 -> 0
       artifactsUnlocked: artifacts,
+      dailyChallengeHistory: dailyHistory,
+      deeperDescentUnlocked: json['deeperDescentUnlocked'] == true,
+      deeperDescentLevel: _readInt(json['deeperDescentLevel'], fallback: 0),
     );
   }
 
   Map<String, Object?> toJson() {
     return {
-      'version': 2,
+      'version': 4,
       'unlockedDungeonIndex': unlockedDungeonIndex,
       'dungeonLevelProgress': dungeonLevelProgress.map(
         (key, value) => MapEntry(key.toString(), value),
@@ -71,6 +91,9 @@ class CampaignProgress {
       'hintCharges': hintCharges,
       'totalCoins': totalCoins,
       'artifactsUnlocked': artifactsUnlocked.toList(),
+      'dailyChallengeHistory': dailyChallengeHistory.map((d) => d.toJson()).toList(),
+      'deeperDescentUnlocked': deeperDescentUnlocked,
+      'deeperDescentLevel': deeperDescentLevel,
     };
   }
 

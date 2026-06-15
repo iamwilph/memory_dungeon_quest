@@ -145,6 +145,46 @@ class DungeonConfig {
   /// Helper that indicates if the final level of this dungeon applies a penalty.
   bool get mismatchPenalty => getMismatchPenaltyForLevel(levelsPerDungeon);
 
+  // ---------------------------------------------------------------------------
+  //  Deeper Descent (New Game+) scaling
+  // ---------------------------------------------------------------------------
+
+  /// Deeper Descent grid size: enlarges the standard grid for a given level.
+  Map<String, int> getDeepGridSizeForLevel(int level) {
+    final base = getGridSizeForLevel(level);
+    return {
+      'rows': (base['rows']! + 1).clamp(4, 7),
+      'cols': (base['cols']! + 1).clamp(3, 6),
+    };
+  }
+
+  /// Deeper Descent row count for a given level.
+  int deeperDescentRows(int level) => getDeepGridSizeForLevel(level)['rows']!;
+
+  /// Deeper Descent column count for a given level.
+  int deeperDescentCols(int level) => getDeepGridSizeForLevel(level)['cols']!;
+
+  /// Deeper Descent total pairs for a given level.
+  int getDeepTotalPairsForLevel(int level) {
+    final grid = getDeepGridSizeForLevel(level);
+    final total = grid['rows']! * grid['cols']!;
+    // Ensure even tile count — if odd, drop one row to stay even.
+    if (total.isOdd) {
+      return ((grid['rows']! - 1) * grid['cols']!) ~/ 2;
+    }
+    return total ~/ 2;
+  }
+
+  /// Deeper Descent scaled reward (50% bonus).
+  int getDeepRewardCoinsForLevel(int level) {
+    return (getRewardCoinsForLevel(level) * 1.5).round();
+  }
+
+  /// Deeper Descent scaled score multiplier (25% bonus).
+  double getDeepScoreMultiplierForLevel(int level) {
+    return getScoreMultiplierForLevel(level) * 1.25;
+  }
+
   /// Returns the active modifier for a given level in this dungeon.
   LevelModifier getModifierForLevel(int level) {
     final idx = DungeonConfig.dungeons.indexWhere((d) => d.id == id);

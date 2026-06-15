@@ -14,6 +14,7 @@ class DungeonThemeData {
   final Color hudBorderColor;
   final Color cardBackBgColor;
   final Color cardBackRuneColor;
+  final Color deeperDescentOverlay; // NG+ crimson overlay tint
 
   const DungeonThemeData({
     required this.themeType,
@@ -26,6 +27,7 @@ class DungeonThemeData {
     required this.hudBorderColor,
     required this.cardBackBgColor,
     required this.cardBackRuneColor,
+    this.deeperDescentOverlay = const Color(0x40E74C3C), // Dark crimson default
   });
 }
 
@@ -67,6 +69,7 @@ class DungeonTheme {
           hudBorderColor: Color(0xFF5A6B7C),
           cardBackBgColor: Color(0xFF34495E),
           cardBackRuneColor: Color(0xFF7F8C8D),
+          deeperDescentOverlay: Color(0x40E74C3C),
         );
       case DungeonThemeType.lava:
         return const DungeonThemeData(
@@ -84,6 +87,7 @@ class DungeonTheme {
           hudBorderColor: Color(0xFFC0392B),
           cardBackBgColor: Color(0xFF3E1717),
           cardBackRuneColor: Color(0xFFD35400),
+          deeperDescentOverlay: Color(0x40FF1744),
         );
       case DungeonThemeType.ice:
         return const DungeonThemeData(
@@ -101,6 +105,7 @@ class DungeonTheme {
           hudBorderColor: Color(0xFF2980B9),
           cardBackBgColor: Color(0xFF1C3A52),
           cardBackRuneColor: Color(0xFF00D2D3),
+          deeperDescentOverlay: Color(0x40D500F9),
         );
       case DungeonThemeType.crypt:
         return const DungeonThemeData(
@@ -118,6 +123,7 @@ class DungeonTheme {
           hudBorderColor: Color(0xFF5E35B1),
           cardBackBgColor: Color(0xFF281145),
           cardBackRuneColor: Color(0xFFBB86FC),
+          deeperDescentOverlay: Color(0x40FF1744),
         );
       case DungeonThemeType.forest:
         return const DungeonThemeData(
@@ -135,6 +141,7 @@ class DungeonTheme {
           hudBorderColor: Color(0xFF388E3C),
           cardBackBgColor: Color(0xFF2E7D32),
           cardBackRuneColor: Color(0xFF1B5E20),
+          deeperDescentOverlay: Color(0x40E74C3C),
         );
       case DungeonThemeType.voidChamber:
         return const DungeonThemeData(
@@ -152,6 +159,7 @@ class DungeonTheme {
           hudBorderColor: Color(0xFFAA00FF),
           cardBackBgColor: Color(0xFF1A0033),
           cardBackRuneColor: Color(0xFFE040FB),
+          deeperDescentOverlay: Color(0x50E040FB),
         );
     }
   }

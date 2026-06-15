@@ -9,8 +9,10 @@ import '../widgets/hud_element.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
 import 'game_screen.dart';
-import 'dungeon_selector_screen.dart';
 import 'shop_screen.dart';
+import 'campaign_map_screen.dart';
+import 'achievements_screen.dart';
+import 'daily_challenge_screen.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
@@ -98,12 +100,12 @@ class MenuScreen extends StatelessWidget {
                   const SizedBox(height: 16.0),
                   
                   MenuButton(
-                    text: 'CHAMBER MAP',
+                    text: 'CAMPAIGN MAP',
                     icon: Icons.map,
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const DungeonSelectorScreen()),
+                        MaterialPageRoute(builder: (context) => const CampaignMapScreen()),
                       );
                     },
                   ),
@@ -117,6 +119,32 @@ class MenuScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const ShopScreen()),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16.0),
+
+                  MenuButton(
+                    text: 'ACHIEVEMENTS',
+                    icon: Icons.emoji_events,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AchievementsScreen()),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16.0),
+
+                  MenuButton(
+                    text: 'DAILY TRIAL',
+                    icon: Icons.calendar_today,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DailyChallengeScreen()),
                       );
                     },
                   ),

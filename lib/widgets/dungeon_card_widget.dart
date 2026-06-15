@@ -91,6 +91,7 @@ class DungeonCardWidget extends StatelessWidget {
               drawCracks: true,
               seed: card.id,
               themeAccent: hasPoisonSight && card.type == CardType.poison ? null : theme.accentColor,
+              cardBackStyle: gameState.activeDungeon.themeType.name, // Dungeon-themed card back rune
             ),
             child: Center(
               child: Text(
