@@ -63,7 +63,7 @@ class DungeonTheme {
           ),
           primaryColor: Color(0xFF7F8C8D),
           accentColor: Color(0xFF27AE60), // Moss Green
-          torchColor: Color(0xFFE67E22),  // Warm Amber
+          torchColor: Color(0xFFE67E22), // Warm Amber
           particleColor: Color(0x3F95A5A6),
           hudBgColor: Color(0x9F1E272C),
           hudBorderColor: Color(0xFF5A6B7C),
@@ -81,7 +81,7 @@ class DungeonTheme {
           ),
           primaryColor: Color(0xFFE74C3C),
           accentColor: Color(0xFFD35400), // Volcanic Orange
-          torchColor: Color(0xFFE25822),  // Flame Red/Orange
+          torchColor: Color(0xFFE25822), // Flame Red/Orange
           particleColor: Color(0x5FEE5A24),
           hudBgColor: Color(0x9F2E0F0F),
           hudBorderColor: Color(0xFFC0392B),
@@ -99,7 +99,7 @@ class DungeonTheme {
           ),
           primaryColor: Color(0xFF3498DB),
           accentColor: Color(0xFF00D2D3), // Glacial Turquoise
-          torchColor: Color(0xFF00E5FF),  // Cyan Ice
+          torchColor: Color(0xFF00E5FF), // Cyan Ice
           particleColor: Color(0x7FCEF6FF),
           hudBgColor: Color(0x9F0F2A3F),
           hudBorderColor: Color(0xFF2980B9),
@@ -117,7 +117,7 @@ class DungeonTheme {
           ),
           primaryColor: Color(0xFF9B59B6),
           accentColor: Color(0xFF8E44AD), // Dark Magic Violet
-          torchColor: Color(0xFF9B59B6),  // Ghastly Purple Flame
+          torchColor: Color(0xFF9B59B6), // Ghastly Purple Flame
           particleColor: Color(0x4FBB86FC),
           hudBgColor: Color(0x9F180A28),
           hudBorderColor: Color(0xFF5E35B1),
@@ -152,8 +152,8 @@ class DungeonTheme {
             end: Alignment.bottomCenter,
           ),
           primaryColor: Color(0xFFE040FB), // Neon Magenta
-          accentColor: Color(0xFFD500F9),  // Electric Violet
-          torchColor: Color(0xFF7C4DFF),   // Deep Indigo Glow
+          accentColor: Color(0xFFD500F9), // Electric Violet
+          torchColor: Color(0xFF7C4DFF), // Deep Indigo Glow
           particleColor: Color(0x5FE040FB),
           hudBgColor: Color(0x9F0A0018),
           hudBorderColor: Color(0xFFAA00FF),
@@ -174,7 +174,7 @@ class DungeonTheme {
         letterSpacing: 2.0,
         shadows: [
           Shadow(
-            color: Colors.black.withValues(alpha:0.8),
+            color: Colors.black.withValues(alpha: 0.8),
             offset: const Offset(2, 2),
             blurRadius: 4,
           ),
@@ -183,7 +183,7 @@ class DungeonTheme {
     );
   }
 
-    static TextStyle getShopTitleStyle(BuildContext context, Color color) {
+  static TextStyle getShopTitleStyle(BuildContext context, Color color) {
     return GoogleFonts.cinzel(
       textStyle: TextStyle(
         fontSize: 20,
@@ -192,7 +192,43 @@ class DungeonTheme {
         letterSpacing: 2.0,
         shadows: [
           Shadow(
-            color: Colors.black.withValues(alpha:0.8),
+            color: Colors.black.withValues(alpha: 0.8),
+            offset: const Offset(2, 2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static TextStyle getCampaignTitleStyle(BuildContext context, Color color) {
+    return GoogleFonts.cinzel(
+      textStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: color,
+        letterSpacing: 2.0,
+        shadows: [
+          Shadow(
+            color: Colors.black.withValues(alpha: 0.8),
+            offset: const Offset(2, 2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static TextStyle getAchievementsTitleStyle(BuildContext context, Color color) {
+    return GoogleFonts.cinzel(
+      textStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: color,
+        letterSpacing: 2.0,
+        shadows: [
+          Shadow(
+            color: Colors.black.withValues(alpha: 0.8),
             offset: const Offset(2, 2),
             blurRadius: 4,
           ),
@@ -206,17 +242,16 @@ class DungeonTheme {
       textStyle: TextStyle(
         fontSize: size,
         color: color,
-        shadows: [
-          Shadow(
-            color: color.withValues(alpha:0.5),
-            blurRadius: 6,
-          ),
-        ],
+        shadows: [Shadow(color: color.withValues(alpha: 0.5), blurRadius: 6)],
       ),
     );
   }
 
-  static TextStyle getGothicStyle(double size, Color color, {FontWeight weight = FontWeight.normal}) {
+  static TextStyle getGothicStyle(
+    double size,
+    Color color, {
+    FontWeight weight = FontWeight.normal,
+  }) {
     return GoogleFonts.grenzeGotisch(
       textStyle: TextStyle(
         fontSize: size,
@@ -227,7 +262,11 @@ class DungeonTheme {
     );
   }
 
-  static TextStyle getBodyStyle(double size, Color color, {FontWeight weight = FontWeight.normal}) {
+  static TextStyle getBodyStyle(
+    double size,
+    Color color, {
+    FontWeight weight = FontWeight.normal,
+  }) {
     return GoogleFonts.cinzel(
       textStyle: TextStyle(
         fontSize: size,

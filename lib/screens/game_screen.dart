@@ -3,6 +3,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
+import 'package:memory_dungeon/widgets/game_hud.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_state.dart';
@@ -184,7 +185,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   // Top carved HUD elements
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: _buildHUD(context, gameState, theme),
+                    // child: _buildHUD(context, gameState, theme),
+                    child: GameHud(context: context, gameState: gameState, theme: theme),
                   ),
 
                   // Streak / effect text overlay (appears briefly)

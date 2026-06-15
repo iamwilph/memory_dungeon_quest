@@ -39,7 +39,7 @@ class CampaignMapScreen extends StatelessWidget {
                       _backButton(context),
                       Text(
                         'CAMPAIGN MAP',
-                        style: DungeonTheme.getTitleStyle(context, const Color(0xFFF1C40F)),
+                        style: DungeonTheme.getCampaignTitleStyle(context, const Color(0xFFF1C40F)),
                       ),
                       _listToggle(context),
                     ],

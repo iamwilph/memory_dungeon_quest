@@ -37,7 +37,7 @@ class AchievementsScreen extends StatelessWidget {
                       _backButton(context),
                       Text(
                         'ACHIEVEMENTS',
-                        style: DungeonTheme.getTitleStyle(context, const Color(0xFFF1C40F)),
+                        style: DungeonTheme.getAchievementsTitleStyle(context, const Color(0xFFF1C40F)),
                       ),
                       SizedBox(width: 80), // Spacer
                     ],
