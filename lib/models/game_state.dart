@@ -884,6 +884,8 @@ class GameState extends ChangeNotifier {
 
       _streakCount++;
       _streakMultiplier = (1.0 + (min(_streakCount, _maxStreak) ~/ 3) * 0.5).clamp(1.0, 3.0);
+      // Trigger transient streak counter overlay on every increment.
+      _lastTriggeredEffect = 'streak_increment';
       if (_streakCount > _peakStreakThisLevel) {
         _peakStreakThisLevel = _streakCount;
       }

@@ -116,101 +116,41 @@ class GameHud extends StatelessWidget {
                       ),
                     ),
 
-                  // Optional badges: modifier + streak sit in a Wrap so they
-                  // reflow to a second line instead of overflowing horizontally.
-                  if (gameState.activeModifier != LevelModifier.none ||
-                      gameState.streakCount > 0)
+                  // Optional modifier badge (streak is handled by a transient
+                  // overlay on the card grid, not embedded in the HUD).
+                  if (gameState.activeModifier != LevelModifier.none)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          // Modifier badge
-                          if (gameState.activeModifier != LevelModifier.none)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.red.withValues(alpha: 0.6),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _modifierIcon(gameState.activeModifier),
-                                    size: 12,
-                                    color: Colors.redAccent,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _modifierName(gameState.activeModifier),
-                                    style: DungeonTheme.getRuneStyle(
-                                      10.0,
-                                      Colors.redAccent,
-                                    ),
-                                  ),
-                                ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _modifierIcon(gameState.activeModifier),
+                              size: 12,
+                              color: Colors.redAccent,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _modifierName(gameState.activeModifier),
+                              style: DungeonTheme.getRuneStyle(
+                                10.0,
+                                Colors.redAccent,
                               ),
                             ),
-
-                          // Streak badge
-                          if (gameState.streakCount > 0)
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOut,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: gameState.streakMultiplier > 1.0
-                                    ? const Color(0xFFF1C40F)
-                                        .withValues(alpha: 0.3)
-                                    : Colors.orange.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: gameState.streakMultiplier > 1.0
-                                      ? const Color(0xFFF1C40F)
-                                      : Colors.orange,
-                                  width:
-                                      gameState.streakMultiplier >= 2.0 ? 1.5 : 1.0,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    '🔥',
-                                    style: TextStyle(fontSize: 11),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${gameState.streakCount}',
-                                    style: DungeonTheme.getRuneStyle(
-                                        11.0, Colors.orange),
-                                  ),
-                                  if (gameState.streakMultiplier > 1.0) ...[
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      '(${gameState.streakMultiplier.toStringAsFixed(1)}x)',
-                                      style: DungeonTheme.getRuneStyle(
-                                        9.0,
-                                        const Color(0xFFF1C40F),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                 ],

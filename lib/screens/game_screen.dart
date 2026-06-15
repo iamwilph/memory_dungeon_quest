@@ -115,6 +115,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         // Brief red flash on streak broken + shake
         _triggerFlash(const Color(0x40E74C3C)); // Subtle red flash
         break;
+      case 'streak_increment':
+        // Subtle orange flash on every streak build
+        _triggerFlash(const Color(0x40E67E22)); // Orange flash
+        break;
       default:
         break;
     }
@@ -260,6 +264,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
           // 8. Achievement toast overlay (shown briefly after victory)
           if (gameState.isLevelCleared) const _AchievementToastOverlay(),
+
+          // 9. Streak counter overlay (brief animated popup on every streak build)
+          if (gameState.lastTriggeredEffect == 'streak_increment')
+            _StreakCounterOverlay(
+              streakCount: gameState.streakCount,
+            ),
         ],
       ),
     );
@@ -1350,6 +1360,83 @@ class _StreakMilestoneOverlayState extends State<_StreakMilestoneOverlay>
                   0xFFF1C40F,
                 ).withValues(alpha: (1.0 - value) * 0.9),
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─── Streak Counter Overlay (transient, every streak build) ──────────────
+
+class _StreakCounterOverlay extends StatefulWidget {
+  final int streakCount;
+  const _StreakCounterOverlay({required this.streakCount});
+
+  @override
+  State<_StreakCounterOverlay> createState() => _StreakCounterOverlayState();
+}
+
+class _StreakCounterOverlayState extends State<_StreakCounterOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnim;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _scaleAnim = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
+    );
+    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.4),
+      ),
+    );
+    _controller.forward();
+
+    // Auto-dismiss after animation completes
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (mounted) {
+        final gs = Provider.of<GameState>(context, listen: false);
+        if (gs.lastTriggeredEffect == 'streak_increment') {
+          gs.clearLastEffect();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnim.value,
+            child: Opacity(
+              opacity: _fadeAnim.value,
+              child: Text(
+                '🔥 ${widget.streakCount}',
+                style: GoogleFonts.cinzel(
+                  fontSize: 24,
+                  color: const Color(0xFFF1C40F),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           );
