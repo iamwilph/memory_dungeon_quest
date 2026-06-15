@@ -228,10 +228,11 @@ bool hasTutorialBeenSeen() => _prefsInstance.getBool('tutorialSeen');
 
 /// Show the tutorial if it hasn't been seen yet.
 void showTutorialIfNeeded(BuildContext context) {
-  if (hasTutorialBeenSeen()) return;
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => const TutorialOverlay(),
-  );
+  return;
+  // if (hasTutorialBeenSeen()) return;
+  // showDialog(
+  //   context: context,
+  //   barrierDismissible: false,
+  //   builder: (_) => const TutorialOverlay(),
+  // );
 }

@@ -44,7 +44,7 @@ class _MemoryDungeonAppState extends State<MemoryDungeonApp> {
     super.initState();
     // Show tutorial on first launch (after the app frame is ready)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // showTutorialIfNeeded(context);
+      showTutorialIfNeeded(context);
     });
   }
 
