@@ -14,6 +14,7 @@ import 'campaign_map_screen.dart';
 import 'achievements_screen.dart';
 import 'daily_challenge_screen.dart';
 import 'tutorial_hint.dart';
+import 'settings_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -169,10 +170,13 @@ class _MenuScreenState extends State<MenuScreen> {
                   const SizedBox(height: 16.0),
 
                   MenuButton(
-                    text: 'RESET CAMPAIGN',
-                    icon: Icons.refresh,
+                    text: 'SETTINGS',
+                    icon: Icons.settings,
                     onPressed: () {
-                      _showResetConfirmation(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                      );
                     },
                   ),
                   
@@ -327,79 +331,6 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  void _showResetConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha:0.85),
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: HudElement(
-            borderRadius: 12.0,
-            padding: const EdgeInsets.all(20.0),
-            seed: 2,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'RESET PROGRESS?',
-                  style: DungeonTheme.getTitleStyle(context, const Color(0xFFE74C3C)),
-                ),
-                const SizedBox(height: 12.0),
-                Text(
-                  'This will lock all deeper chambers (Lava, Ice, Crypt) and clear your inventory. Are you sure you wish to return to the entrance?',
-                  textAlign: TextAlign.center,
-                  style: DungeonTheme.getBodyStyle(12.0, Colors.white70),
-                ),
-                const SizedBox(height: 24.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'ABANDON',
-                        style: DungeonTheme.getBodyStyle(12.0, Colors.white54),
-                      ),
-                    ),
-                    const SizedBox(width: 20.0),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE74C3C),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
-                      ),
-                      onPressed: () {
-                        Provider.of<GameState>(context, listen: false).resetGame();
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: const Color(0xFF2C3E50),
-                            content: Text(
-                              'Campaign progress has been erased. The dungeon seals are restored.',
-                              style: DungeonTheme.getBodyStyle(12.0, Colors.white),
-                            ),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        'ERASE SEALS',
-                        style: DungeonTheme.getBodyStyle(12.0, Colors.white, weight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
