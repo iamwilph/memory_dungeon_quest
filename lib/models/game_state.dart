@@ -1238,6 +1238,7 @@ class GameState extends ChangeNotifier {
   // Helper to clear effect string after UI reacts to it
   void clearLastEffect() {
     _lastTriggeredEffect = null;
+    notifyListeners(); // Rebuild so overlay widgets gated on lastTriggeredEffect are removed
   }
 
   CampaignProgress _snapshotCampaignProgress() {

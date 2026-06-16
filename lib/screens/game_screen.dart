@@ -80,6 +80,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (effect == null) return;
 
+    // Effects that have dedicated overlay widgets self-dismiss via clearLastEffect()
+    // in their own timers: streak_increment, streak_milestone, streak_broken.
+    // All other effects are fire-and-forget (flash/haptic only) — clear them here.
+    bool selfDismissed = false;
+
     switch (effect) {
       case 'poison':
         _triggerShake();
@@ -107,24 +112,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         _triggerFlash(const Color(0x6027AE60)); // Victory green flash
         break;
       case 'streak_milestone':
-        // Golden golden pulse on streak milestone (3, 6, 9)
-        _triggerFlash(const Color(0x80F1C40F)); // Golden flash
+        // Golden flash — overlay widget (_StreakCounterOverlay) self-dismisses
+        _triggerFlash(const Color(0x80F1C40F));
         HapticFeedback.lightImpact();
+        selfDismissed = true; // overlay timer calls clearLastEffect()
         break;
       case 'streak_broken':
-        // Brief red flash on streak broken + shake
-        _triggerFlash(const Color(0x40E74C3C)); // Subtle red flash
+        // Subtle red flash — overlay widget (_StreakBrokenOverlay) self-dismisses
+        _triggerFlash(const Color(0x40E74C3C));
+        selfDismissed = true; // overlay timer calls clearLastEffect()
         break;
       case 'streak_increment':
-        // Subtle orange flash on every streak build
-        _triggerFlash(const Color(0x40E67E22)); // Orange flash
+        // Orange flash — overlay widget (_StreakCounterOverlay) self-dismisses
+        _triggerFlash(const Color(0x40E67E22));
+        selfDismissed = true; // overlay timer calls clearLastEffect()
         break;
       default:
         break;
     }
 
-    // Acknowledge event
-    gameState.clearLastEffect();
+    // Clear fire-and-forget effects immediately; overlay-backed effects clear themselves.
+    if (!selfDismissed) {
+      gameState.clearLastEffect();
+    }
   }
 
   void _triggerShake() {
@@ -266,7 +276,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           if (gameState.isLevelCleared) const _AchievementToastOverlay(),
 
           // 9. Streak counter overlay (brief animated popup on every streak build)
-          if (gameState.lastTriggeredEffect == 'streak_increment')
+          // NOTE: lastTriggeredEffect is 'streak_milestone' on hits of 3/6/9,
+          // overwriting 'streak_increment' in game_state.dart — so we match both.
+          if (gameState.lastTriggeredEffect == 'streak_increment' ||
+              gameState.lastTriggeredEffect == 'streak_milestone')
             _StreakCounterOverlay(
               streakCount: gameState.streakCount,
             ),
@@ -1407,7 +1420,8 @@ class _StreakCounterOverlayState extends State<_StreakCounterOverlay>
     Future.delayed(const Duration(milliseconds: 900), () {
       if (mounted) {
         final gs = Provider.of<GameState>(context, listen: false);
-        if (gs.lastTriggeredEffect == 'streak_increment') {
+        if (gs.lastTriggeredEffect == 'streak_increment' ||
+            gs.lastTriggeredEffect == 'streak_milestone') {
           gs.clearLastEffect();
         }
       }
