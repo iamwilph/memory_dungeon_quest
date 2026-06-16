@@ -57,6 +57,12 @@ class GameState extends ChangeNotifier {
   int _scrollsMatchedThisLevel = 0;
   int _treasuresMatchedThisLevel = 0;
 
+  // Per-run artifact tracking (reset each level)
+  int _matchesThisRun = 0; // for Midas Touch (every 5th pair)
+  int _healingPotionsThisRun = 0; // for Alchemist's Flask (convert every 3)
+  bool _phoenixUsedThisRun = false; // for Phoenix Feather (one-time use)
+  bool _saboteurCharmUsedThisLevel = false; // for Saboteur's Charm (once per level)
+
   // Daily Challenge state (Phase 4)
   DailyChallenge? _dailyChallenge;
   bool _isDailyMode = false;
@@ -85,12 +91,26 @@ class GameState extends ChangeNotifier {
     'extra_hint': 50,
     'lives_boost': 150,
     'poison_sight': 75,
+    'alchemist_flask': 90,
+    'greed_rune': 100,
+    'phase_cloak': 120,
+    'midas_touch': 175,
+    'chronos_hourglass': 180,
+    'saboteurs_charm': 200,
+    'phoenix_feather': 250,
   };
 
   static const Map<String, String> artifactIcons = {
     'extra_hint': '📜',
-    'lives_boost': '❤️‍🔥',  
+    'lives_boost': '❤️‍🔥',
     'poison_sight': '👁️',
+    'alchemist_flask': '🧪',
+    'greed_rune': '💰',
+    'phase_cloak': '👻',
+    'midas_touch': '✋',
+    'chronos_hourglass': '⏳',
+    'saboteurs_charm': '🃏',
+    'phoenix_feather': '🪶',
   };
 
   static const Map<String, ArtifactDef> artifactsCatalogue = {
@@ -105,6 +125,34 @@ class GameState extends ChangeNotifier {
     'poison_sight': ArtifactDef(
       'Poison Sight Rune',
       'Poison cards glow red on the board UI',
+    ),
+    'alchemist_flask': ArtifactDef(
+      "Alchemist's Flask",
+      'At level end, convert every 3 matched healing potions into 20 bonus coins',
+    ),
+    'greed_rune': ArtifactDef(
+      'Greed Rune',
+      'Matching treasure cards grants 2× coin reward',
+    ),
+    'phase_cloak': ArtifactDef(
+      'Phase Cloak',
+      'Shadow modifier cards remain semi-visible (reduces difficulty ~50%)',
+    ),
+    'midas_touch': ArtifactDef(
+      'Midas Touch',
+      'Every 5th matched pair grants 3× bonus coin payout',
+    ),
+    'chronos_hourglass': ArtifactDef(
+      'Chronos Hourglass',
+      'Timer modifier cards auto-flip 3 seconds slower (6s instead of 3s)',
+    ),
+    'saboteurs_charm': ArtifactDef(
+      "Saboteur's Charm",
+      'Fake poison pairs reveal the other card automatically when matched',
+    ),
+    'phoenix_feather': ArtifactDef(
+      'Phoenix Feather',
+      'One-time auto-save: survive your last life with 1 life remaining (once per run)',
     ),
   };
 
@@ -574,7 +622,11 @@ class GameState extends ChangeNotifier {
     int totalPairs = totalPairsRaw;
     if (_activeModifier == LevelModifier.shadow) {
       final hiddenPairs = (totalPairsRaw ~/ 4).clamp(1, 3);
-      totalPairs -= hiddenPairs;
+      // Phase Cloak: reduce hidden pairs by half (floor), making shadow easier
+      final effectiveHiddenPairs = _artifactsUnlocked.contains('phase_cloak')
+          ? (hiddenPairs ~/ 2).clamp(0, 3)
+          : hiddenPairs;
+      totalPairs -= effectiveHiddenPairs;
     }
     final random = _seededRandom ?? Random();
 
@@ -772,11 +824,15 @@ class GameState extends ChangeNotifier {
     card.isFlipped = true;
     
     // Timer modifier: schedule auto-flip back after 3 seconds (if card was newly flipped)
+    // Chronos Hourglass: extends to 6 seconds
     if (_activeModifier == LevelModifier.timer && !card.isMatched) {
       _timerFlipBack?.cancel(); // Cancel any pending timer
       final scheduledIndex = index;
+      final flipDuration = _artifactsUnlocked.contains('chronos_hourglass')
+          ? const Duration(seconds: 6)
+          : const Duration(seconds: 3);
       
-      _timerFlipBack = Timer(const Duration(seconds: 3), () {
+      _timerFlipBack = Timer(flipDuration, () {
         if (scheduledIndex >= _cards.length || scheduledIndex < 0) return;
         
         final targetCard = _cards[scheduledIndex];
@@ -888,6 +944,7 @@ class GameState extends ChangeNotifier {
       }
 
       _streakCount++;
+      _matchesThisRun++;
       _streakMultiplier = (1.0 + (min(_streakCount, _maxStreak) ~/ 3) * 0.5).clamp(1.0, 3.0);
       // Trigger transient streak counter overlay on every increment.
       _lastTriggeredEffect = 'streak_increment';
@@ -900,6 +957,14 @@ class GameState extends ChangeNotifier {
         ach.increment('streak_5', 1);
       } else if (_streakCount == 10) {
         ach.increment('streak_10', 1);
+      }
+
+      // Midas Touch: every 5th matched pair grants 3× bonus coin payout
+      if (_artifactsUnlocked.contains('midas_touch') && _matchesThisRun % 5 == 0) {
+        final bonusCoins = 3 * (_currentLevel ~/ 5 + 1);
+        _coins += bonusCoins;
+        ach.increment('coins_500', bonusCoins);
+        _lastTriggeredEffect = 'midas_touch';
       }
 
       // Calculate score: base score of 100 * dungeon multiplier * current multiplier * streak multiplier
@@ -936,12 +1001,20 @@ class GameState extends ChangeNotifier {
         _lastTriggeredEffect = 'mismatch_penalty';
 
         if (_lives <= 0) {
-          _isGameOver = true;
-          _flushGame();
-          _lastTriggeredEffect = 'game_over';
-          AudioService().playSfx('sfx/gameover.wav');
-          if (_isDailyMode && _dailyChallenge != null) {
-            _recordDailyFailure();
+          // Phoenix Feather: one-time auto-save, survive with 1 life remaining
+          if (_artifactsUnlocked.contains('phoenix_feather') && !_phoenixUsedThisRun) {
+            _lives = 1;
+            _phoenixUsedThisRun = true;
+            _lastTriggeredEffect = 'phoenix_feather';
+            notifyListeners(); // Show phoenix revival effect
+          } else {
+            _isGameOver = true;
+            _flushGame();
+            _lastTriggeredEffect = 'game_over';
+            AudioService().playSfx('sfx/gameover.wav');
+            if (_isDailyMode && _dailyChallenge != null) {
+              _recordDailyFailure();
+            }
           }
         }
       }
@@ -960,6 +1033,17 @@ class GameState extends ChangeNotifier {
     // Award bonus coins for long streaks
     if (_streakCount >= 5) {
       _coins += _streakCount;
+    }
+
+    // Alchemist's Flask: convert every 3 matched healing potions into 20 bonus coins
+    if (_artifactsUnlocked.contains('alchemist_flask')) {
+      final flaskConversions = _healingPotionsThisRun ~/ 3;
+      if (flaskConversions > 0) {
+        final flaskCoins = flaskConversions * 20;
+        _coins += flaskCoins;
+        _lastTriggeredEffect = 'alchemist_flask';
+        notifyListeners(); // Show the flask conversion effect
+      }
     }
 
     _flushGame();
@@ -1071,14 +1155,33 @@ class GameState extends ChangeNotifier {
         _lives--;
         _lastTriggeredEffect = 'poison';
 
+        DungeonCard? toDissolve;
         final unpurifiedPoisons =
             _cards.where((c) => c.type == CardType.poison && !c.isMatched).toList();
 
         if (unpurifiedPoisons.length >= 2) {
           // Dissolve one poison card from the board (it's been neutralized)
-          final toDissolve = unpurifiedPoisons.first;
+          toDissolve = unpurifiedPoisons.first;
           toDissolve.isMatched = true;
           _lastTriggeredEffect = 'poison_purify';
+        }
+
+        // Saboteur's Charm: when a poison card is matched, reveal one random
+        // non-poison card face-up as a hint (QoL utility, once per level)
+        if (_artifactsUnlocked.contains('saboteurs_charm') &&
+            !_saboteurCharmUsedThisLevel) {
+          final revealableCards = _cards.where((c) =>
+            c.type != CardType.poison && !c.isMatched && !c.isFlipped,
+          ).toList();
+
+          if (revealableCards.isNotEmpty) {
+            final random = _seededRandom ?? Random();
+            final revealCard =
+                revealableCards[random.nextInt(revealableCards.length)];
+            revealCard.isFlipped = true;
+            _lastTriggeredEffect = 'saboteur_reveal';
+            _saboteurCharmUsedThisLevel = true;
+          }
         }
 
         if (_lives <= 0) {
@@ -1095,6 +1198,7 @@ class GameState extends ChangeNotifier {
       case CardType.healing:
         audio.playSfx('sfx/heal.wav');
         _healsReceivedThisLevel++;
+        _healingPotionsThisRun++;
         if (_lives < _maxLives) {
           _lives++;
           _lastTriggeredEffect = 'heal';
@@ -1109,7 +1213,11 @@ class GameState extends ChangeNotifier {
       case CardType.treasure:
         audio.playSfx('sfx/treasure.wav');
         _treasuresMatchedThisLevel++;
-        final treasureCoins = 1 + (_currentLevel ~/ 5);
+        final baseTreasureCoins = 1 + (_currentLevel ~/ 5);
+        // Greed Rune: 2× coin reward for treasure
+        final treasureCoins = _artifactsUnlocked.contains('greed_rune')
+            ? baseTreasureCoins * 2
+            : baseTreasureCoins;
         _coins += treasureCoins;
         ach.increment('coins_500', treasureCoins);
         _lastTriggeredEffect = 'treasure';
