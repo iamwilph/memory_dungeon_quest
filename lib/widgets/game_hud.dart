@@ -47,6 +47,11 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
   late final Animation<double> _multScale;
   late final Animation<double> _multGlow;
 
+  // ── Score bump (every match) ──────────────────────────────────────────────
+  late final AnimationController _scoreCtrl;
+  late final Animation<double> _scoreScale;
+  late final Animation<Color?> _scoreColor;
+
   // Floating "+N" label per panel
   String? _coinsDelta;    // e.g. "+3"
   bool _showCoinsDelta = false;
@@ -126,6 +131,24 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
       CurvedAnimation(parent: _multCtrl, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
     );
 
+    // ── Score bump ────────────────────────────────────────────────────────
+    _scoreCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _scoreScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 0.95), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.95, end: 1.0), weight: 40),
+    ]).animate(CurvedAnimation(parent: _scoreCtrl, curve: Curves.easeOut));
+    _scoreColor = ColorTween(
+      begin: Colors.white,
+      end: const Color(0xFFF1C40F),
+    ).animate(CurvedAnimation(
+      parent: _scoreCtrl,
+      curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+    ));
+
     _gameState.addListener(_onEffect);
   }
 
@@ -136,6 +159,7 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
     _heartsLoseCtrl.dispose();
     _coinsCtrl.dispose();
     _multCtrl.dispose();
+    _scoreCtrl.dispose();
     super.dispose();
   }
 
@@ -203,6 +227,14 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
         Future.delayed(const Duration(milliseconds: 700), () {
           if (mounted) _gameState.clearLastEffect();
         });
+    }
+
+    // Bump score panel on every effect that changes the score
+    if (effect == 'streak_increment' ||
+        effect == 'streak_milestone' ||
+        effect == 'heal_overflow' ||
+        effect == 'mismatch_penalty') {
+      _scoreCtrl.forward(from: 0.0);
     }
   }
 
@@ -515,21 +547,31 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
 
             const SizedBox(width: 10.0),
 
-            // ── Score panel (unchanged) ───────────────────────────────────
+            // ── Score panel — bumps on every match ────────────────────────
             Expanded(
               flex: 3,
-              child: HudElement(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                seed: 3,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('SCORE', style: DungeonTheme.getBodyStyle(8.0, theme.primaryColor)),
-                    Text(
-                      '${gameState.score}',
-                      style: DungeonTheme.getBodyStyle(11.0, Colors.white, weight: FontWeight.bold),
+              child: AnimatedBuilder(
+                animation: _scoreCtrl,
+                builder: (_, _) => Transform.scale(
+                  scale: _scoreScale.value,
+                  child: HudElement(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    seed: 3,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('SCORE', style: DungeonTheme.getBodyStyle(8.0, theme.primaryColor)),
+                        Text(
+                          '${gameState.score}',
+                          style: DungeonTheme.getBodyStyle(
+                            11.0,
+                            _scoreColor.value ?? Colors.white,
+                            weight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

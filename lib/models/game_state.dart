@@ -879,8 +879,13 @@ class GameState extends ChangeNotifier {
       card1.isMatched = true;
       card2.isMatched = true;
 
-      // Trigger effects based on item card type
+      // Trigger effects based on item card type.
+      // Emit the card effect immediately so listeners (e.g. GameHud) see it
+      // before streak_increment overwrites _lastTriggeredEffect below.
       _applyMatchEffects(card1.type);
+      if (_lastTriggeredEffect != null) {
+        notifyListeners(); // ← card-effect notify (heal / treasure / gem / poison etc.)
+      }
 
       _streakCount++;
       _streakMultiplier = (1.0 + (min(_streakCount, _maxStreak) ~/ 3) * 0.5).clamp(1.0, 3.0);
