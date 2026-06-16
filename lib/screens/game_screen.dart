@@ -90,20 +90,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         _triggerShake();
         _triggerFlash(const Color(0x7F2ECC71)); // Toxic green flash
         HapticFeedback.mediumImpact();
+        selfDismissed = true; // GameHud listener handles clearLastEffect after HUD animation
         break;
       case 'mismatch_penalty':
         _triggerShake();
         _triggerFlash(const Color(0x7FE74C3C)); // Damage red flash
         HapticFeedback.mediumImpact();
+        selfDismissed = true; // GameHud listener handles clearLastEffect after HUD animation
         break;
       case 'heal':
         _triggerFlash(const Color(0x60E74C3C)); // Warm heart heal flash
+        selfDismissed = true; // GameHud listener handles clearLastEffect after HUD animation
         break;
       case 'treasure':
         _triggerFlash(const Color(0x60F1C40F)); // Golden hoard flash
+        selfDismissed = true; // GameHud listener handles clearLastEffect after HUD animation
         break;
       case 'gem':
         _triggerFlash(const Color(0x603498DB)); // Crystal multiplier flash
+        selfDismissed = true; // GameHud listener handles clearLastEffect after HUD animation
+        break;
+      case 'gem_shatter':
+        _triggerFlash(const Color(0x603498DB)); // Crystal shatter flash
+        selfDismissed = true; // GameHud listener handles clearLastEffect after HUD animation
         break;
       case 'scroll':
         _triggerFlash(const Color(0x60E67E22)); // Spell scroll flash
@@ -202,7 +211,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     // child: _buildHUD(context, gameState, theme),
                     child: GameHud(
                       context: context,
-                      gameState: gameState,
                       theme: theme,
                     ),
                   ),
@@ -859,6 +867,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 32.0),
 
                   // Restart options
+                  // Daily mode: one shot only — no retry allowed
+                  if (gameState.isDailyMode)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'THE VAULT SEALS UNTIL TOMORROW.',
+                        textAlign: TextAlign.center,
+                        style: DungeonTheme.getBodyStyle(
+                          10.0,
+                          const Color(0xFFE74C3C).withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -889,35 +911,38 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12.0),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE74C3C),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
+                      // No RETRY button in daily mode
+                      if (!gameState.isDailyMode) ...[
+                        const SizedBox(width: 12.0),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE74C3C),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14.0),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4.0),
+                              ),
                             ),
-                          ),
-                          onPressed: () {
-                            // Retry current dungeon, resets run stats
-                            gameState.initDungeon(
-                              gameState.activeDungeon,
-                              resetStats: true,
-                              startLevel: gameState.currentLevel,
-                            );
-                          },
-                          child: Text(
-                            'RETRY',
-                            style: DungeonTheme.getBodyStyle(
-                              11.0,
-                              Colors.white,
-                              weight: FontWeight.bold,
+                            onPressed: () {
+                              // Retry current dungeon, resets run stats
+                              gameState.initDungeon(
+                                gameState.activeDungeon,
+                                resetStats: true,
+                                startLevel: gameState.currentLevel,
+                              );
+                            },
+                            child: Text(
+                              'RETRY',
+                              style: DungeonTheme.getBodyStyle(
+                                11.0,
+                                Colors.white,
+                                weight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ],
@@ -965,7 +990,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    isLastLevel ? 'CHAMBER CLEARED' : 'LEVEL COMPLETE',
+                    gameState.isDailyMode
+                        ? 'VAULT PLUNDERED'
+                        : isLastLevel
+                            ? 'CHAMBER CLEARED'
+                            : 'LEVEL COMPLETE',
                     style: DungeonTheme.getTitleStyle(
                       context,
                       const Color(0xFF27AE60),
@@ -973,9 +1002,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 8.0),
                   Text(
-                    isLastLevel
-                        ? 'THE SEALS OPEN TO THE DEEPS'
-                        : 'LEVEL $completedLevel OF ${DungeonConfig.levelsPerDungeon} COMPLETE',
+                    gameState.isDailyMode
+                        ? 'THE DAILY VAULT HAS BEEN CONQUERED'
+                        : isLastLevel
+                            ? 'THE SEALS OPEN TO THE DEEPS'
+                            : 'LEVEL $completedLevel OF \${DungeonConfig.levelsPerDungeon} COMPLETE',
                     textAlign: TextAlign.center,
                     style: DungeonTheme.getBodyStyle(10.0, theme.primaryColor),
                   ),
@@ -997,96 +1028,62 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 32.0),
 
                   // Navigation options
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF5A6B7C)),
-                            padding: const EdgeInsets.symmetric(vertical: 14.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                            ),
+                  // Daily mode: one board, one shot — no next level, no retry
+                  if (gameState.isDailyMode) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'RETURN TOMORROW FOR THE NEXT TRIAL.',
+                        textAlign: TextAlign.center,
+                        style: DungeonTheme.getBodyStyle(
+                          10.0,
+                          const Color(0xFF27AE60).withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF27AE60),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.0),
                           ),
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const DungeonSelectorScreen(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            'CHAMBER MAP',
-                            style: DungeonTheme.getBodyStyle(
-                              10.0,
-                              Colors.white,
-                              weight: FontWeight.bold,
+                        ),
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MenuScreen(),
                             ),
-                            textAlign: TextAlign.center,
+                          );
+                        },
+                        child: Text(
+                          'RETURN TO CAMP',
+                          style: DungeonTheme.getBodyStyle(
+                            11.0,
+                            Colors.white,
+                            weight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12.0),
-
-                      // Shop Button (Phase 3)
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF1C40F),
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 14.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ShopScreen(),
+                    ),
+                  ] else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFF5A6B7C)),
+                              padding: const EdgeInsets.symmetric(vertical: 14.0),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4.0),
                               ),
-                            );
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.store, size: 14),
-                              const SizedBox(width: 6),
-                              Text(
-                                'SHOP',
-                                style: DungeonTheme.getBodyStyle(
-                                  10.0,
-                                  Colors.black,
-                                  weight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12.0),
-
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF27AE60),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
                             ),
-                          ),
-                          onPressed: () {
-                            if (!isLastLevel) {
-                              gameState.advanceToNextLevel();
-                            } else if (hasNextChamber && nextDungeon != null) {
-                              // Descend to next dungeon carrying over lives and coins
-                              gameState.initDungeon(nextDungeon);
-                            } else {
-                              // Beat the game! Return to selector
+                            onPressed: () {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
@@ -1094,36 +1091,111 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                       const DungeonSelectorScreen(),
                                 ),
                               );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: const Color(0xFF27AE60),
-                                  content: Text(
-                                    'Congratulations! You have conquered the deepest tombs of the Crypt Chamber!',
-                                    style: DungeonTheme.getBodyStyle(
-                                      12.0,
-                                      Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          child: Text(
-                            !isLastLevel
-                                ? 'NEXT LEVEL'
-                                : hasNextChamber
-                                ? 'DESCEND'
-                                : 'ASCEND HOME',
-                            style: DungeonTheme.getBodyStyle(
-                              10.0,
-                              Colors.white,
-                              weight: FontWeight.bold,
+                            },
+                            child: Text(
+                              'CHAMBER MAP',
+                              style: DungeonTheme.getBodyStyle(
+                                10.0,
+                                Colors.white,
+                                weight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 12.0),
+
+                        // Shop Button (Phase 3)
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF1C40F),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 14.0),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4.0),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ShopScreen(),
+                                ),
+                              );
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.store, size: 14),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'SHOP',
+                                  style: DungeonTheme.getBodyStyle(
+                                    10.0,
+                                    Colors.black,
+                                    weight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12.0),
+
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF27AE60),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14.0),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4.0),
+                              ),
+                            ),
+                            onPressed: () {
+                              if (!isLastLevel) {
+                                gameState.advanceToNextLevel();
+                              } else if (hasNextChamber && nextDungeon != null) {
+                                gameState.initDungeon(nextDungeon);
+                              } else {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const DungeonSelectorScreen(),
+                                  ),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: const Color(0xFF27AE60),
+                                    content: Text(
+                                      'Congratulations! You have conquered the deepest tombs of the Crypt Chamber!',
+                                      style: DungeonTheme.getBodyStyle(
+                                        12.0,
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text(
+                              !isLastLevel
+                                  ? 'NEXT LEVEL'
+                                  : hasNextChamber
+                                  ? 'DESCEND'
+                                  : 'ASCEND HOME',
+                              style: DungeonTheme.getBodyStyle(
+                                10.0,
+                                Colors.white,
+                                weight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
