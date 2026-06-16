@@ -369,9 +369,8 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
         // ── Stats Row ────────────────────────────────────────────────────────
         Row(
           children: [
-            // ── Hearts panel ──────────────────────────────────────────────
-            Expanded(
-              flex: 4,
+            // ── Hearts panel — intrinsic width so it hugs content, no gap ─
+            IntrinsicWidth(
               child: AnimatedBuilder(
                 animation: Listenable.merge([_heartsGainCtrl, _heartsLoseCtrl]),
                 builder: (_, child) {
@@ -386,63 +385,76 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
                       scale: gainScale,
                       child: Stack(
                         children: [
-                          HudElement(
+                          SizedBox(
+                            width: double.infinity,
+                            child: HudElement(
                             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                             seed: 1,
                             child: Stack(
                               children: [
-                                // Heart icons row
+                                // Heart icons — adaptive to prevent overflow
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    ...List.generate(5, (index) {
-                                      final isFull = index < gameState.lives;
-                                      final isMaxed = gameState.lives >= gameState.maxLives;
-                                      final isWarning =
-                                          gameState.lives >= gameState.maxLives - 3 &&
-                                              gameState.lives < gameState.maxLives;
-                                      Color heartColor;
-                                      if (isMaxed) {
-                                        heartColor = const Color(0xFFF1C40F);
-                                      } else if (isFull) {
-                                        // Tint green during gain animation
-                                        heartColor = _heartsGainCtrl.isAnimating
-                                            ? Color.lerp(
-                                                const Color(0xFFE74C3C),
-                                                const Color(0xFF2ECC71),
-                                                _heartsGainScale.value - 1.0,
-                                              )!
-                                            : const Color(0xFFE74C3C);
-                                      } else if (isWarning) {
-                                        heartColor = Colors.white38;
-                                      } else {
-                                        heartColor = Colors.white24;
-                                      }
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                                        child: Icon(
-                                          isFull ? Icons.favorite : Icons.favorite_border,
-                                          color: heartColor,
-                                          size: 18.0,
-                                        ),
-                                      );
-                                    }),
+                                    ...List.generate(
+                                      gameState.maxLives > 5 ? 5 : gameState.maxLives,
+                                      (index) {
+                                        final isFull = index < gameState.lives;
+                                        final isMaxed = gameState.lives >= gameState.maxLives;
+                                        final isWarning = gameState.lives == 1 || gameState.lives == 2;
+                                        final iconSize = gameState.maxLives > 5 ? 14.0 : 18.0;
+                                        final hPad = gameState.maxLives > 5 ? 1.5 : 2.0;
+                                        Color heartColor;
+                                        if (isMaxed) {
+                                          heartColor = const Color(0xFFF1C40F);
+                                        } else if (isFull) {
+                                          heartColor = _heartsGainCtrl.isAnimating
+                                              ? Color.lerp(
+                                                  const Color(0xFFE74C3C),
+                                                  const Color(0xFF2ECC71),
+                                                  (_heartsGainScale.value - 1.0).clamp(0.0, 1.0),
+                                                )!
+                                              : const Color(0xFFE74C3C);
+                                        } else if (isWarning) {
+                                          heartColor = Colors.white38;
+                                        } else {
+                                          heartColor = Colors.white24;
+                                        }
+                                        return Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: hPad),
+                                          child: Icon(
+                                            isFull ? Icons.favorite : Icons.favorite_border,
+                                            color: heartColor,
+                                            size: iconSize,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                     if (gameState.maxLives > 5) ...[
                                       const SizedBox(width: 4),
-                                      Text(
-                                        '+${gameState.maxLives - 5}',
-                                        style: DungeonTheme.getBodyStyle(
-                                          13.0,
-                                          (gameState.lives >= gameState.maxLives)
-                                              ? const Color(0xFFF1C40F)
-                                              : theme.accentColor,
-                                          weight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '${gameState.lives}/${gameState.maxLives}',
-                                        style: DungeonTheme.getBodyStyle(11.0, const Color(0xFF8888AA)),
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${gameState.lives}/${gameState.maxLives}',
+                                            style: DungeonTheme.getBodyStyle(
+                                              11.0,
+                                              gameState.lives >= gameState.maxLives
+                                                  ? const Color(0xFFF1C40F)
+                                                  : Colors.white70,
+                                              weight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            'HP',
+                                            style: DungeonTheme.getBodyStyle(
+                                              8.0,
+                                              const Color(0xFF8888AA),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ],
@@ -460,6 +472,7 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
                                   ),
                               ],
                             ),
+                          ),
                           ),
 
                           // Red damage flash overlay
