@@ -1,15 +1,60 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class AudioService {
   static final AudioService _instance = AudioService._internal();
   factory AudioService() => _instance;
-  AudioService._internal();
+  AudioService._internal() {
+    _mutedNotifier = ValueNotifier<bool>(_isMuted);
+  }
 
   late final AudioPlayer _sfxPlayer;   // Short sounds, overlap-friendly
   late final AudioPlayer _ambientPlayer; // Long looping ambient tracks
 
   bool _isMuted = false;
+  late ValueNotifier<bool> _mutedNotifier;
+
+  /// Exposed for reactive UI — widgets can listen via ValueListenableBuilder.
+  ValueListenable<bool> get mutedValue => _mutedNotifier;
+
   String? _currentAmbientDungeon;
+
+  /// Loads the persisted muted state from disk (if any) and applies it.
+  Future<void> loadMutedPreference() async {
+    try {
+      final file = await _mutedFile();
+      if (file.existsSync()) {
+        final raw = await file.readAsString();
+        final data = jsonDecode(raw);
+        if (data is bool && data != _isMuted) {
+          _isMuted = data;
+          _mutedNotifier.value = _isMuted;
+        }
+      }
+    } catch (e) {
+      // Corrupted file — ignore, stick with default false
+    }
+  }
+
+  /// Saves the current muted state to disk.
+  Future<void> saveMutedPreference() async {
+    try {
+      final file = await _mutedFile();
+      await file.writeAsString(jsonEncode(_isMuted), flush: true);
+    } catch (e) {
+      // Silently fail — muted preference is non-critical
+    }
+  }
+
+  Future<File> _mutedFile() async {
+    final directory = await getApplicationSupportDirectory();
+    return File('${directory.path}/audio_muted.json');
+  }
 
   void init() {
     _sfxPlayer = AudioPlayer(playerId: 'sfx');
@@ -60,7 +105,13 @@ class AudioService {
     _currentAmbientDungeon = null;
   }
 
-  void setMuted(bool muted) => _isMuted = muted;
+  void setMuted(bool muted) {
+    _isMuted = muted;
+    _mutedNotifier.value = muted; // Notify all listeners
+    // Persist the preference immediately
+    unawaited(saveMutedPreference());
+  }
+
   bool get isMuted => _isMuted;
 
   String? _getAmbientPath(String dungeonId) {
@@ -76,6 +127,7 @@ class AudioService {
   }
 
   void dispose() {
+    _mutedNotifier.dispose();
     _sfxPlayer.dispose();
     _ambientPlayer.dispose();
   }

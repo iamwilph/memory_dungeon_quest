@@ -96,72 +96,75 @@ class SettingsScreen extends StatelessWidget {
 
   Widget _buildSoundToggle(BuildContext context) {
     final audio = AudioService();
-    final isMuted = audio.isMuted;
-
-    return HudElement(
-      padding: const EdgeInsets.all(20),
-      borderRadius: 12,
-      seed: 42,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+    return ValueListenableBuilder<bool>(
+      valueListenable: audio.mutedValue,
+      builder: (context, isMuted, _) {
+        return HudElement(
+          padding: const EdgeInsets.all(20),
+          borderRadius: 12,
+          seed: 42,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                isMuted ? Icons.volume_off : Icons.volume_up,
-                color: isMuted ? Colors.white24 : const Color(0xFFF1C40F),
-                size: 20,
+              Row(
+                children: [
+                  Icon(
+                    isMuted ? Icons.volume_off : Icons.volume_up,
+                    color: isMuted ? Colors.white24 : const Color(0xFFF1C40F),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'SOUND',
+                    style: DungeonTheme.getBodyStyle(14, Colors.white, weight: FontWeight.bold),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Text(
-                'SOUND',
-                style: DungeonTheme.getBodyStyle(14, Colors.white, weight: FontWeight.bold),
+              // Toggle switch
+              GestureDetector(
+                onTap: () {
+                  audio.setMuted(!isMuted);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isMuted ? 'Sound unmuted' : 'Sound muted',
+                      ),
+                      duration: const Duration(seconds: 1),
+                      backgroundColor: Colors.black.withValues(alpha: 0.6),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 50,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: isMuted
+                        ? const Color(0xFF5A6B7C).withValues(alpha: 0.5)
+                        : const Color(0xFFF1C40F),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          // Toggle switch
-          GestureDetector(
-            onTap: () {
-              audio.setMuted(!audio.isMuted);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    audio.isMuted ? 'Sound muted' : 'Sound unmuted',
-                  ),
-                  duration: const Duration(seconds: 1),
-                  backgroundColor: Colors.black.withValues(alpha: 0.6),
-                ),
-              );
-            },
-            child: Container(
-              width: 50,
-              height: 28,
-              decoration: BoxDecoration(
-                color: isMuted
-                    ? const Color(0xFF5A6B7C).withValues(alpha: 0.5)
-                    : const Color(0xFFF1C40F),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

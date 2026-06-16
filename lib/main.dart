@@ -12,8 +12,9 @@ Future<void> main() async {
   // Ensure widget bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize audio service (non-blocking — SFX may not be ready yet)
+  // Initialize audio service and load persisted muted preference
   AudioService().init();
+  await AudioService().loadMutedPreference();
   
   // Initialize high score service
   await HighScoreService().init();

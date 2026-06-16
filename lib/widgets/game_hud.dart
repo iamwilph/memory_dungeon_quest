@@ -730,32 +730,37 @@ class _MuteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext ctx) {
-    return InkWell(
-      onTap: () {
-        final audio = AudioService();
-        audio.setMuted(!audio.isMuted);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(audio.isMuted ? 'Audio muted' : 'Audio unmuted'),
-            duration: const Duration(seconds: 1),
-            backgroundColor: Colors.black.withValues(alpha: 0.6),
+    final audio = AudioService();
+    return ValueListenableBuilder<bool>(
+      valueListenable: audio.mutedValue,
+      builder: (context, isMuted, _) {
+        return InkWell(
+          onTap: () {
+            audio.setMuted(!isMuted);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(isMuted ? 'Audio unmuted' : 'Audio muted'),
+                duration: const Duration(seconds: 1),
+                backgroundColor: Colors.black.withValues(alpha: 0.6),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: theme.hudBorderColor.withValues(alpha: 0.5)),
+            ),
+            child: Icon(
+              isMuted ? Icons.volume_off : Icons.volume_up,
+              size: 14,
+              color: isMuted ? Colors.white24 : Colors.white70,
+            ),
           ),
         );
       },
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: theme.hudBorderColor.withValues(alpha: 0.5)),
-        ),
-        child: Icon(
-          AudioService().isMuted ? Icons.volume_off : Icons.volume_up,
-          size: 14,
-          color: AudioService().isMuted ? Colors.white24 : Colors.white70,
-        ),
-      ),
     );
   }
 }

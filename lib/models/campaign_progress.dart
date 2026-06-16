@@ -15,6 +15,7 @@ class CampaignProgress {
   final List<DailyChallengeProgress> dailyChallengeHistory; // (v3+)
   final bool deeperDescentUnlocked; // (v4+)
   final int deeperDescentLevel;     // (v4+) current NG+ level (0 = not started)
+  final bool isMuted;              // (v5+) persisted audio mute preference
 
   const CampaignProgress({
     required this.unlockedDungeonIndex,
@@ -28,6 +29,7 @@ class CampaignProgress {
     this.dailyChallengeHistory = const [],
     this.deeperDescentUnlocked = false,
     this.deeperDescentLevel = 0,
+    this.isMuted = false,
   });
 
   factory CampaignProgress.fromJson(Map<String, Object?> json) {
@@ -75,12 +77,13 @@ class CampaignProgress {
       dailyChallengeHistory: dailyHistory,
       deeperDescentUnlocked: json['deeperDescentUnlocked'] == true,
       deeperDescentLevel: _readInt(json['deeperDescentLevel'], fallback: 0),
+      isMuted: json['isMuted'] == true,
     );
   }
 
   Map<String, Object?> toJson() {
     return {
-      'version': 4,
+      'version': 5,
       'unlockedDungeonIndex': unlockedDungeonIndex,
       'dungeonLevelProgress': dungeonLevelProgress.map(
         (key, value) => MapEntry(key.toString(), value),
@@ -94,6 +97,7 @@ class CampaignProgress {
       'dailyChallengeHistory': dailyChallengeHistory.map((d) => d.toJson()).toList(),
       'deeperDescentUnlocked': deeperDescentUnlocked,
       'deeperDescentLevel': deeperDescentLevel,
+      'isMuted': isMuted,
     };
   }
 
