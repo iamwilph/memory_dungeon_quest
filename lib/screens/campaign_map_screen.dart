@@ -8,6 +8,7 @@ import '../theme/dungeon_theme.dart';
 import '../theme/stone_painter.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
+import '../constants.dart';
 import 'game_screen.dart';
 import 'dungeon_selector_screen.dart';
 import '../services/high_score_service.dart';
@@ -142,7 +143,7 @@ class _CampaignMapContent extends StatelessWidget {
             }
 
             final config = DungeonConfig.dungeons[index];
-            final isUnlocked = index <= gameState.unlockedDungeonIndex;
+            final isUnlocked = kIsDebugMode || index <= gameState.unlockedDungeonIndex;
 
             return Column(
               children: [
