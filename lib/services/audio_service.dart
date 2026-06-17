@@ -11,6 +11,9 @@ class AudioService {
   factory AudioService() => _instance;
   AudioService._internal() {
     _mutedNotifier = ValueNotifier<bool>(_isMuted);
+    _sfxVolumeNotifier = ValueNotifier<double>(_sfxVolume);
+    _ambientVolumeNotifier = ValueNotifier<double>(_ambientVolume);
+    _menuVolumeNotifier = ValueNotifier<double>(_menuVolume);
   }
 
   late final AudioPlayer _sfxPlayer;   // Short sounds, overlap-friendly
@@ -20,8 +23,23 @@ class AudioService {
   bool _isMuted = false;
   late ValueNotifier<bool> _mutedNotifier;
 
+  /// SFX volume (0.0–1.0).
+  double _sfxVolume = 1.0;
+  late ValueNotifier<double> _sfxVolumeNotifier;
+
+  /// Ambient volume (0.0–1.0).
+  double _ambientVolume = 1.0;
+  late ValueNotifier<double> _ambientVolumeNotifier;
+
+  /// Menu ambient volume (0.0–1.0).
+  double _menuVolume = 1.0;
+  late ValueNotifier<double> _menuVolumeNotifier;
+
   /// Exposed for reactive UI — widgets can listen via ValueListenableBuilder.
   ValueListenable<bool> get mutedValue => _mutedNotifier;
+  ValueListenable<double> get sfxVolumeValue => _sfxVolumeNotifier;
+  ValueListenable<double> get ambientVolumeValue => _ambientVolumeNotifier;
+  ValueListenable<double> get menuVolumeValue => _menuVolumeNotifier;
 
   String? _currentAmbientDungeon;
   String? _ambientDungeonWhenStopped; // Tracks the dungeon ID when stopAmbient() is called (for un-mute restore)
@@ -59,6 +77,52 @@ class AudioService {
     return File('${directory.path}/audio_muted.json');
   }
 
+  /// Returns the volumes file path.
+  Future<File> _volumesFile() async {
+    final directory = await getApplicationSupportDirectory();
+    return File('${directory.path}/audio_volumes.json');
+  }
+
+  /// Loads persisted volume values from disk.
+  Future<void> loadVolumePreferences() async {
+    try {
+      final file = await _volumesFile();
+      if (file.existsSync()) {
+        final raw = await file.readAsString();
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        if (data['sfxVolume'] is double && data['sfxVolume'] != _sfxVolume) {
+          _sfxVolume = data['sfxVolume'] as double;
+          _sfxVolumeNotifier.value = _sfxVolume;
+        }
+        if (data['ambientVolume'] is double && data['ambientVolume'] != _ambientVolume) {
+          _ambientVolume = data['ambientVolume'] as double;
+          _ambientVolumeNotifier.value = _ambientVolume;
+        }
+        if (data['menuVolume'] is double && data['menuVolume'] != _menuVolume) {
+          _menuVolume = data['menuVolume'] as double;
+          _menuVolumeNotifier.value = _menuVolume;
+        }
+      }
+    } catch (e) {
+      // Corrupted file — ignore, stick with defaults
+    }
+  }
+
+  /// Saves all volume values to disk.
+  Future<void> saveVolumePreferences() async {
+    try {
+      final file = await _volumesFile();
+      final data = {
+        'sfxVolume': _sfxVolume,
+        'ambientVolume': _ambientVolume,
+        'menuVolume': _menuVolume,
+      };
+      await file.writeAsString(jsonEncode(data), flush: true);
+    } catch (e) {
+      // Silently fail — volume preference is non-critical
+    }
+  }
+
   void init() {
     _sfxPlayer = AudioPlayer(playerId: 'sfx');
     _ambientPlayer = AudioPlayer(playerId: 'ambient');
@@ -66,11 +130,38 @@ class AudioService {
     // Configure ambient for looping
     _ambientPlayer.setReleaseMode(ReleaseMode.loop);
     _menuPlayer.setReleaseMode(ReleaseMode.loop);
+    // Load persisted volume preferences
+    unawaited(loadVolumePreferences());
+  }
+
+  /// Sets the SFX volume (0.0–1.0) and persists it.
+  void setSfxVolume(double volume) {
+    _sfxVolume = volume.clamp(0.0, 1.0);
+    _sfxVolumeNotifier.value = _sfxVolume;
+    unawaited(_sfxPlayer.setVolume(_sfxVolume));
+    unawaited(saveVolumePreferences());
+  }
+
+  /// Sets the ambient volume (0.0–1.0) and persists it.
+  void setAmbientVolume(double volume) {
+    _ambientVolume = volume.clamp(0.0, 1.0);
+    _ambientVolumeNotifier.value = _ambientVolume;
+    unawaited(_ambientPlayer.setVolume(_ambientVolume));
+    unawaited(saveVolumePreferences());
+  }
+
+  /// Sets the menu ambient volume (0.0–1.0) and persists it.
+  void setMenuVolume(double volume) {
+    _menuVolume = volume.clamp(0.0, 1.0);
+    _menuVolumeNotifier.value = _menuVolume;
+    unawaited(_menuPlayer.setVolume(_menuVolume));
+    unawaited(saveVolumePreferences());
   }
 
   Future<void> playSfx(String assetPath) async {
     if (_isMuted) return;
     try {
+      await _sfxPlayer.setVolume(_sfxVolume);
       await _sfxPlayer.play(AssetSource('audio/$assetPath'));
     } catch (e) {
       // Silently fail if asset missing — don't crash the game
@@ -80,6 +171,7 @@ class AudioService {
   Future<void> playSfxOnce({required String assetPath, required void Function() onComplete}) async {
     if (_isMuted) { onComplete(); return; }
     final player = AudioPlayer(playerId: 'sfx-once');
+    await player.setVolume(_sfxVolume);
     await player.play(AssetSource('audio/$assetPath'));
     player.onPlayerComplete.listen((_) {
       onComplete();
@@ -95,6 +187,7 @@ class AudioService {
       final path = _getAmbientPath(dungeonId);
       debugPrint('loading $path audio for $dungeonId');
       if (path != null) {
+        await _ambientPlayer.setVolume(_ambientVolume);
         await _ambientPlayer.play(AssetSource('audio/$path'));
         _currentAmbientDungeon = dungeonId;
       } else {
@@ -120,6 +213,7 @@ class AudioService {
   Future<void> playMenuAmbient() async {
     if (_isMuted) return;
     try {
+      await _menuPlayer.setVolume(_menuVolume);
       await _menuPlayer.play(AssetSource('audio/ambience/dungeon.mp3'));
     } catch (e) {
       // Silently fail if asset missing
@@ -195,6 +289,9 @@ class AudioService {
 
   void dispose() {
     _mutedNotifier.dispose();
+    _sfxVolumeNotifier.dispose();
+    _ambientVolumeNotifier.dispose();
+    _menuVolumeNotifier.dispose();
     _sfxPlayer.dispose();
     _ambientPlayer.dispose();
     _menuPlayer.dispose();

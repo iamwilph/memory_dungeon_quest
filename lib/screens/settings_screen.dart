@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/game_state.dart';
@@ -53,6 +54,10 @@ class SettingsScreen extends StatelessWidget {
                           children: [
                             // Sound Toggle
                             _buildSoundToggle(context),
+                            const SizedBox(height: 24),
+
+                            // Volume Sliders
+                            _buildVolumeSliders(context),
                             const SizedBox(height: 32),
 
                             // Reset Campaign
@@ -170,6 +175,88 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildVolumeSliders(BuildContext context) {
+    final audio = AudioService();
+    return HudElement(
+      padding: const EdgeInsets.all(20),
+      borderRadius: 12,
+      seed: 43,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // SFX Volume Slider
+          _buildVolumeRow(
+            context: context,
+            label: 'SFX',
+            icon: Icons.volume_up,
+            volumeValue: audio.sfxVolumeValue,
+            setVolume: audio.setSfxVolume,
+          ),
+          const SizedBox(height: 16),
+          // Ambient Volume Slider
+          _buildVolumeRow(
+            context: context,
+            label: 'AMBIENT',
+            icon: Icons.music_note,
+            volumeValue: audio.ambientVolumeValue,
+            setVolume: audio.setAmbientVolume,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVolumeRow({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required ValueListenable<double> volumeValue,
+    required void Function(double) setVolume,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: const Color(0xFFF1C40F),
+          size: 18,
+        ),
+        const SizedBox(width: 12),
+        Text(
+          label,
+          style: DungeonTheme.getBodyStyle(12, Colors.white, weight: FontWeight.bold),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ValueListenableBuilder<double>(
+            valueListenable: volumeValue,
+            builder: (context, volume, _) {
+              return Slider(
+                value: volume,
+                min: 0.0,
+                max: 1.0,
+                divisions: 100,
+                activeColor: const Color(0xFFF1C40F),
+                inactiveColor: const Color(0xFF5A6B7C).withValues(alpha: 0.5),
+                onChanged: (value) {
+                  setVolume(value);
+                },
+              );
+            },
+          ),
+        ),
+        ValueListenableBuilder<double>(
+          valueListenable: volumeValue,
+          builder: (context, volume, _) {
+            return Text(
+              '${(volume * 100).toInt()}%',
+              style: DungeonTheme.getBodyStyle(11, const Color(0xFFF1C40F)),
+            );
+          },
+        ),
+      ],
     );
   }
 
