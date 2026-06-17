@@ -12,6 +12,7 @@ import '../constants.dart';
 import 'game_screen.dart';
 import 'dungeon_selector_screen.dart';
 import '../services/high_score_service.dart';
+import 'level_select_overlay.dart';
 
 class CampaignMapScreen extends StatelessWidget {
   const CampaignMapScreen({super.key});
@@ -203,11 +204,24 @@ class _CampaignRoomCard extends StatelessWidget {
         child: InkWell(
           onTap: isUnlocked
               ? () {
-                  gameState.initDungeonAtNextUnfinishedLevel(config);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const GameScreen()),
-                  );
+                  if (isFullyCleared) {
+                    // Show level-select overlay for fully-cleared chambers
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LevelSelectOverlay(
+                          config: config,
+                          dungeonIndex: dungeonIndex,
+                        ),
+                      ),
+                    );
+                  } else {
+                    gameState.initDungeonAtNextUnfinishedLevel(config);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const GameScreen()),
+                    );
+                  }
                 }
               : null,
           borderRadius: BorderRadius.circular(12),
@@ -341,6 +355,36 @@ class _CampaignRoomCard extends StatelessWidget {
                     const Padding(
                       padding: EdgeInsets.only(top: 4),
                       child: Text('⚠️ MISMATCH PENALTY', style: TextStyle(fontSize: 8, color: Color(0xFFE74C3C))),
+                    ),
+
+                  // "Select Levels" button for fully-cleared chambers
+                  if (isFullyCleared)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.accentColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: theme.accentColor.withValues(alpha: 0.5),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.swap_horiz, size: 10, color: theme.accentColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              'SELECT LEVELS',
+                              style: DungeonTheme.getBodyStyle(
+                                9, theme.accentColor, weight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
 
                   // Locked overlay — show a small lock badge aligned to the

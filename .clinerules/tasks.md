@@ -128,6 +128,22 @@
 
 ---
 
+## NEW: Level-Select Overlay for Fully-Cleared Chambers ✅ COMPLETE
+
+- [x] Created `lib/screens/level_select_overlay.dart` — Full level-select overlay (dialog-style)
+- [x] Campaign map wiring: tapping a fully-cleared chamber shows level-select instead of auto-entering
+- [x] "SELECT LEVELS" button visible on cleared chamber cards
+
+**Features:**
+- Scrollable grid of 20 levels (4 columns)
+- Per-level display: status (cleared/current/locked), grid size, modifier badge, best score
+- Tapping a level calls `gameState.initDungeon(config, startLevel: level)` and enters GameScreen
+- Locked levels are grayed out and non-tappable
+
+**Files:** `lib/screens/level_select_overlay.dart`, `lib/screens/campaign_map_screen.dart`
+
+---
+
 ## Verification Checklist (Post-Implementation)
 
 - [ ] Sound: Flip/match/mismatch SFX + ambient audio + mute toggle
