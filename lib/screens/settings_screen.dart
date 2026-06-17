@@ -184,27 +184,34 @@ class SettingsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       borderRadius: 12,
       seed: 43,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // SFX Volume Slider
-          _buildVolumeRow(
-            context: context,
-            label: 'SFX',
-            icon: Icons.volume_up,
-            volumeValue: audio.sfxVolumeValue,
-            setVolume: audio.setSfxVolume,
-          ),
-          const SizedBox(height: 16),
-          // Ambient Volume Slider
-          _buildVolumeRow(
-            context: context,
-            label: 'AMBIENT',
-            icon: Icons.music_note,
-            volumeValue: audio.ambientVolumeValue,
-            setVolume: audio.setAmbientVolume,
-          ),
-        ],
+      child: ValueListenableBuilder<bool>(
+        valueListenable: audio.mutedValue,
+        builder: (context, isMuted, _) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // SFX Volume Slider
+              _buildVolumeRow(
+                context: context,
+                label: 'SFX',
+                icon: Icons.volume_up,
+                volumeValue: audio.sfxVolumeValue,
+                setVolume: audio.setSfxVolume,
+                isMuted: isMuted,
+              ),
+              const SizedBox(height: 16),
+              // Ambient Volume Slider
+              _buildVolumeRow(
+                context: context,
+                label: 'AMBIENT',
+                icon: Icons.music_note,
+                volumeValue: audio.ambientVolumeValue,
+                setVolume: audio.setAmbientVolume,
+                isMuted: isMuted,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -215,20 +222,38 @@ class SettingsScreen extends StatelessWidget {
     required IconData icon,
     required ValueListenable<double> volumeValue,
     required void Function(double) setVolume,
+    required bool isMuted,
   }) {
+    // Fixed width for the label area so both sliders start at the same X position
+    const double labelAreaWidth = 100.0;
+
     return Row(
       children: [
-        Icon(
-          icon,
-          color: const Color(0xFFF1C40F),
-          size: 18,
+        // Label area — fixed width so both rows' sliders align
+        SizedBox(
+          width: labelAreaWidth,
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isMuted
+                    ? const Color(0xFF5A6B7C)
+                    : const Color(0xFFF1C40F),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: DungeonTheme.getBodyStyle(
+                  12,
+                  isMuted ? Colors.white38 : Colors.white,
+                  weight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(width: 12),
-        Text(
-          label,
-          style: DungeonTheme.getBodyStyle(12, Colors.white, weight: FontWeight.bold),
-        ),
-        const SizedBox(width: 12),
+        // Slider — expands to fill remaining width equally for both rows
         Expanded(
           child: ValueListenableBuilder<double>(
             valueListenable: volumeValue,
@@ -237,24 +262,33 @@ class SettingsScreen extends StatelessWidget {
                 value: volume,
                 min: 0.0,
                 max: 1.0,
-                divisions: 100,
-                activeColor: const Color(0xFFF1C40F),
-                inactiveColor: const Color(0xFF5A6B7C).withValues(alpha: 0.5),
-                onChanged: (value) {
-                  setVolume(value);
-                },
+                divisions: 20,
+                activeColor: isMuted
+                    ? const Color(0xFF5A6B7C).withValues(alpha: 0.4)
+                    : const Color(0xFFF1C40F),
+                inactiveColor: const Color(0xFF5A6B7C).withValues(alpha: 0.3),
+                // onChanged is null when muted — Flutter disables the slider
+                onChanged: isMuted ? null : setVolume,
               );
             },
           ),
         ),
-        ValueListenableBuilder<double>(
-          valueListenable: volumeValue,
-          builder: (context, volume, _) {
-            return Text(
-              '${(volume * 100).toInt()}%',
-              style: DungeonTheme.getBodyStyle(11, const Color(0xFFF1C40F)),
-            );
-          },
+        // Percentage label — fixed width so it doesn't cause slider width jitter
+        SizedBox(
+          width: 36,
+          child: ValueListenableBuilder<double>(
+            valueListenable: volumeValue,
+            builder: (context, volume, _) {
+              return Text(
+                '${(volume * 100).toInt()}%',
+                textAlign: TextAlign.right,
+                style: DungeonTheme.getBodyStyle(
+                  11,
+                  isMuted ? Colors.white24 : const Color(0xFFF1C40F),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );

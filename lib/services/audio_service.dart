@@ -127,7 +127,13 @@ class AudioService {
     _sfxPlayer = AudioPlayer(playerId: 'sfx');
     _ambientPlayer = AudioPlayer(playerId: 'ambient');
     _menuPlayer = AudioPlayer(playerId: 'menu-ambient');
-    // Configure ambient for looping
+    // ReleaseMode.stop keeps the native player alive after playback ends so
+    // that setVolume() calls between plays are not discarded. The default
+    // ReleaseMode.release tears down the native engine after each sound,
+    // meaning any setVolume() applied to an idle player targets a
+    // non-existent native object and is silently ignored.
+    _sfxPlayer.setReleaseMode(ReleaseMode.stop);
+    // Configure ambient players for looping
     _ambientPlayer.setReleaseMode(ReleaseMode.loop);
     _menuPlayer.setReleaseMode(ReleaseMode.loop);
     // Load persisted volume preferences
@@ -135,22 +141,30 @@ class AudioService {
   }
 
   /// Sets the SFX volume (0.0–1.0) and persists it.
+  /// Applies immediately to any currently-playing SFX track.
   void setSfxVolume(double volume) {
     _sfxVolume = volume.clamp(0.0, 1.0);
     _sfxVolumeNotifier.value = _sfxVolume;
+    // Push the new volume to the native player immediately. With
+    // ReleaseMode.stop the native player persists between plays so this
+    // always reaches a live native object.
     unawaited(_sfxPlayer.setVolume(_sfxVolume));
     unawaited(saveVolumePreferences());
   }
 
   /// Sets the ambient volume (0.0–1.0) and persists it.
+  /// Applies immediately to any currently-playing ambient track.
   void setAmbientVolume(double volume) {
     _ambientVolume = volume.clamp(0.0, 1.0);
     _ambientVolumeNotifier.value = _ambientVolume;
+    // Apply immediately — ambient uses ReleaseMode.loop so the native
+    // player always persists. This also handles live slider drag updates.
     unawaited(_ambientPlayer.setVolume(_ambientVolume));
     unawaited(saveVolumePreferences());
   }
 
   /// Sets the menu ambient volume (0.0–1.0) and persists it.
+  /// Applies immediately to any currently-playing menu track.
   void setMenuVolume(double volume) {
     _menuVolume = volume.clamp(0.0, 1.0);
     _menuVolumeNotifier.value = _menuVolume;
@@ -161,8 +175,11 @@ class AudioService {
   Future<void> playSfx(String assetPath) async {
     if (_isMuted) return;
     try {
-      await _sfxPlayer.setVolume(_sfxVolume);
+      // play() must come before setVolume() — the native audio engine is
+      // created by the play() call. Calling setVolume() first targets a
+      // non-existent native object and the value is silently discarded.
       await _sfxPlayer.play(AssetSource('audio/$assetPath'));
+      await _sfxPlayer.setVolume(_sfxVolume);
     } catch (e) {
       // Silently fail if asset missing — don't crash the game
     }
@@ -171,8 +188,8 @@ class AudioService {
   Future<void> playSfxOnce({required String assetPath, required void Function() onComplete}) async {
     if (_isMuted) { onComplete(); return; }
     final player = AudioPlayer(playerId: 'sfx-once');
-    await player.setVolume(_sfxVolume);
     await player.play(AssetSource('audio/$assetPath'));
+    await player.setVolume(_sfxVolume);
     player.onPlayerComplete.listen((_) {
       onComplete();
       player.dispose();
@@ -187,8 +204,8 @@ class AudioService {
       final path = _getAmbientPath(dungeonId);
       debugPrint('loading $path audio for $dungeonId');
       if (path != null) {
-        await _ambientPlayer.setVolume(_ambientVolume);
         await _ambientPlayer.play(AssetSource('audio/$path'));
+        await _ambientPlayer.setVolume(_ambientVolume);
         _currentAmbientDungeon = dungeonId;
       } else {
         // Fallback: no ambient, just silence or generic stone ambience
@@ -213,8 +230,8 @@ class AudioService {
   Future<void> playMenuAmbient() async {
     if (_isMuted) return;
     try {
-      await _menuPlayer.setVolume(_menuVolume);
       await _menuPlayer.play(AssetSource('audio/ambience/dungeon.mp3'));
+      await _menuPlayer.setVolume(_menuVolume);
     } catch (e) {
       // Silently fail if asset missing
     }
