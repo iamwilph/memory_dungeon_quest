@@ -15,6 +15,7 @@ class AudioService {
 
   late final AudioPlayer _sfxPlayer;   // Short sounds, overlap-friendly
   late final AudioPlayer _ambientPlayer; // Long looping ambient tracks
+  late final AudioPlayer _menuPlayer;   // Long looping menu ambient
 
   bool _isMuted = false;
   late ValueNotifier<bool> _mutedNotifier;
@@ -59,8 +60,10 @@ class AudioService {
   void init() {
     _sfxPlayer = AudioPlayer(playerId: 'sfx');
     _ambientPlayer = AudioPlayer(playerId: 'ambient');
+    _menuPlayer = AudioPlayer(playerId: 'menu-ambient');
     // Configure ambient for looping
     _ambientPlayer.setReleaseMode(ReleaseMode.loop);
+    _menuPlayer.setReleaseMode(ReleaseMode.loop);
   }
 
   Future<void> playSfx(String assetPath) async {
@@ -106,11 +109,36 @@ class AudioService {
     _currentAmbientDungeon = null;
   }
 
+  /// Plays the menu ambient loop (dungeon.mp3). Respects muted state.
+  Future<void> playMenuAmbient() async {
+    if (_isMuted) return;
+    try {
+      await _menuPlayer.play(AssetSource('audio/ambience/dungeon.mp3'));
+    } catch (e) {
+      // Silently fail if asset missing
+    }
+  }
+
+  /// Stops the menu ambient audio.
+  Future<void> stopMenuAmbient() async {
+    try {
+      await _menuPlayer.stop();
+    } catch (e) {
+      // Silently fail
+    }
+  }
+
   void setMuted(bool muted) {
     _isMuted = muted;
     _mutedNotifier.value = muted; // Notify all listeners
     // Persist the preference immediately
     unawaited(saveMutedPreference());
+
+    // If muting, stop all currently playing ambient audio immediately
+    if (muted) {
+      unawaited(_ambientPlayer.stop());
+      unawaited(_menuPlayer.stop());
+    }
   }
 
   bool get isMuted => _isMuted;
@@ -131,5 +159,6 @@ class AudioService {
     _mutedNotifier.dispose();
     _sfxPlayer.dispose();
     _ambientPlayer.dispose();
+    _menuPlayer.dispose();
   }
 }

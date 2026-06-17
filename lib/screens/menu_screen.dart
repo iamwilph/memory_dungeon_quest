@@ -8,6 +8,7 @@ import '../theme/dungeon_theme.dart';
 import '../widgets/hud_element.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
+import '../services/audio_service.dart';
 import 'game_screen.dart';
 import 'shop_screen.dart';
 import 'campaign_map_screen.dart';
@@ -24,6 +25,22 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Start menu ambient audio when the screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AudioService().playMenuAmbient();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Stop menu ambient when leaving the screen
+    AudioService().stopMenuAmbient();
+    super.dispose();
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
