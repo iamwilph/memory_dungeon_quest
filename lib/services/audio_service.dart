@@ -43,7 +43,7 @@ class AudioService {
 
   String? _currentAmbientDungeon;
   String? _ambientDungeonWhenStopped; // Tracks the dungeon ID when stopAmbient() is called (for un-mute restore)
-  bool _wasMenuPlayingWhenMuted = false; // Tracks whether menu ambient was playing when muted
+  // bool _wasMenuPlayingWhenMuted = false; // Tracks whether menu ambient was playing when muted
 
   /// Loads the persisted muted state from disk (if any) and applies it.
   Future<void> loadMutedPreference() async {
@@ -175,11 +175,13 @@ class AudioService {
   Future<void> playSfx(String assetPath) async {
     if (_isMuted) return;
     try {
-      // play() must come before setVolume() — the native audio engine is
-      // created by the play() call. Calling setVolume() first targets a
-      // non-existent native object and the value is silently discarded.
-      await _sfxPlayer.play(AssetSource('audio/$assetPath'));
-      await _sfxPlayer.setVolume(_sfxVolume);
+      // Pass volume directly into play() — this is the only reliable way to
+      // set volume in audioplayers. setVolume() on a separate call is racy
+      // and ignored on many platforms when the source is reloaded.
+      await _sfxPlayer.play(
+        AssetSource('audio/$assetPath'),
+        volume: _sfxVolume,
+      );
     } catch (e) {
       // Silently fail if asset missing — don't crash the game
     }
@@ -188,8 +190,7 @@ class AudioService {
   Future<void> playSfxOnce({required String assetPath, required void Function() onComplete}) async {
     if (_isMuted) { onComplete(); return; }
     final player = AudioPlayer(playerId: 'sfx-once');
-    await player.play(AssetSource('audio/$assetPath'));
-    await player.setVolume(_sfxVolume);
+    await player.play(AssetSource('audio/$assetPath'), volume: _sfxVolume);
     player.onPlayerComplete.listen((_) {
       onComplete();
       player.dispose();
@@ -204,8 +205,7 @@ class AudioService {
       final path = _getAmbientPath(dungeonId);
       debugPrint('loading $path audio for $dungeonId');
       if (path != null) {
-        await _ambientPlayer.play(AssetSource('audio/$path'));
-        await _ambientPlayer.setVolume(_ambientVolume);
+        await _ambientPlayer.play(AssetSource('audio/$path'), volume: _ambientVolume);
         _currentAmbientDungeon = dungeonId;
       } else {
         // Fallback: no ambient, just silence or generic stone ambience
@@ -230,8 +230,7 @@ class AudioService {
   Future<void> playMenuAmbient() async {
     if (_isMuted) return;
     try {
-      await _menuPlayer.play(AssetSource('audio/ambience/dungeon.mp3'));
-      await _menuPlayer.setVolume(_menuVolume);
+      await _menuPlayer.play(AssetSource('audio/ambience/dungeon.mp3'), volume: _menuVolume);
     } catch (e) {
       // Silently fail if asset missing
     }
@@ -246,48 +245,34 @@ class AudioService {
     }
   }
 
-  /// Resumes the last ambient (dungeon or menu) if the user just un-muted.
-  /// Call this after [setMuted(false)] to restart ambient audio that was
-  /// playing before the mute action.
+  /// Resumes dungeon ambient after un-muting (if a dungeon was active).
+  /// Menu ambient is handled separately by MenuScreen's mute listener.
   Future<void> resumeAmbientIfUnmuted() async {
     if (_isMuted) return;
-    bool hadDungeon = false;
-    bool hadMenu = false;
-
-    // If we were playing dungeon ambient and it was stopped (e.g. game screen disposed), restart it
     if (_ambientDungeonWhenStopped != null && _currentAmbientDungeon == null) {
-      hadDungeon = true;
-      await startAmbient(_ambientDungeonWhenStopped!);
+      final dungeonId = _ambientDungeonWhenStopped!;
+      _ambientDungeonWhenStopped = null; // clear before await to prevent double-trigger
+      await startAmbient(dungeonId);
     }
-    // If we were playing menu ambient and it was stopped (e.g. user was on menu, went to settings), restart it
-    if (_wasMenuPlayingWhenMuted) {
-      hadMenu = true;
-      await playMenuAmbient();
-    }
-
-    // Reset flags after consuming so they don't re-trigger on future un-mutes
-    if (hadDungeon) _ambientDungeonWhenStopped = null;
-    if (hadMenu) _wasMenuPlayingWhenMuted = false;
   }
 
   void setMuted(bool muted) {
-    // When un-muting, capture the ambient context so resumeAmbientIfUnmuted can restore it
-    if (!muted && _isMuted) {
-      _ambientDungeonWhenStopped = _currentAmbientDungeon;
-      _wasMenuPlayingWhenMuted = isMenuAmbientPlaying;
-    }
-    _isMuted = muted;
-    _mutedNotifier.value = muted; // Notify all listeners
-    // Persist the preference immediately
-    unawaited(saveMutedPreference());
-
-    // If muting, capture state BEFORE stopping so resumeAmbientIfUnmuted can restore it
     if (muted) {
+      // Capture what is playing NOW, before we stop anything, so
+      // resumeAmbientIfUnmuted() knows what to restart on un-mute.
       _ambientDungeonWhenStopped = _currentAmbientDungeon;
-      _wasMenuPlayingWhenMuted = isMenuAmbientPlaying;
+      // _wasMenuPlayingWhenMuted = isMenuAmbientPlaying;
+      _isMuted = true;
+      _mutedNotifier.value = true;
       unawaited(_ambientPlayer.stop());
       unawaited(_menuPlayer.stop());
+    } else {
+      // Un-muting: flip the flag first so playMenuAmbient / startAmbient
+      // don't bail out early, then resume whatever was playing.
+      _isMuted = false;
+      _mutedNotifier.value = false;
     }
+    unawaited(saveMutedPreference());
   }
 
   bool get isMuted => _isMuted;

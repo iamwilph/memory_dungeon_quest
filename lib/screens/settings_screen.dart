@@ -128,10 +128,11 @@ class SettingsScreen extends StatelessWidget {
               // Toggle switch
               GestureDetector(
                 onTap: () {
-                  final wasMuted = isMuted;
+                  final unmuting = isMuted; // true when going muted→unmuted
                   audio.setMuted(!isMuted);
-                  // When un-muting, resume the ambient audio that was playing
-                  if (wasMuted && !audio.isMuted) {
+                  // Resume dungeon ambient on un-mute (menu ambient is handled
+                  // by MenuScreen's own mute listener).
+                  if (unmuting) {
                     audio.resumeAmbientIfUnmuted();
                   }
                   ScaffoldMessenger.of(context).showSnackBar(
