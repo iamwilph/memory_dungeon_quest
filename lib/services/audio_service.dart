@@ -84,10 +84,11 @@ class AudioService {
 
   Future<void> startAmbient(String dungeonId) async {
     if (_isMuted || _currentAmbientDungeon == dungeonId) return;
-    // Stop current ambient first
+    // Stop current ambient first    
     await _ambientPlayer.stop();
     try {
       final path = _getAmbientPath(dungeonId);
+      debugPrint('loading $path audio');
       if (path != null) {
         await _ambientPlayer.play(AssetSource('audio/$path'));
         _currentAmbientDungeon = dungeonId;

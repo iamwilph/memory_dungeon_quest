@@ -818,7 +818,7 @@ class GameState extends ChangeNotifier {
     if (card.isFlipped || card.isMatched) return;
 
     // Play flip sound
-    AudioService().playSfx('sfx/flip.wav');
+    AudioService().playSfx('sfx/flip.mp3');
 
     // Flip the card
     card.isFlipped = true;
@@ -993,7 +993,7 @@ class GameState extends ChangeNotifier {
       _streakCount = 0;
       _streakMultiplier = 1.0;
       _lastTriggeredEffect = 'streak_broken';
-      AudioService().playSfx('sfx/mismatch.wav');
+      AudioService().playSfx('sfx/mismatch.mp3');
 
       // Optional mismatch penalty: lose a life if configured for the dungeon+level
       if (activeMismatchPenalty) {
@@ -1011,7 +1011,7 @@ class GameState extends ChangeNotifier {
             _isGameOver = true;
             _flushGame();
             _lastTriggeredEffect = 'game_over';
-            AudioService().playSfx('sfx/gameover.wav');
+            AudioService().playSfx('sfx/gameover.mp3');
             if (_isDailyMode && _dailyChallenge != null) {
               _recordDailyFailure();
             }
@@ -1049,7 +1049,7 @@ class GameState extends ChangeNotifier {
     _flushGame();
     _lastTriggeredEffect = 'victory';
     _isLevelCleared = true;
-    AudioService().playSfx('sfx/victory.wav');
+    AudioService().playSfx('sfx/victory.mp3');
 
     final currentDungeonIdx = DungeonConfig.dungeons.indexWhere(
       (d) => d.id == _activeDungeon.id,
@@ -1149,7 +1149,7 @@ class GameState extends ChangeNotifier {
     final ach = AchievementManager();
     switch (type) {
       case CardType.poison:
-        audio.playSfx('sfx/poison.wav');
+        audio.playSfx('sfx/poison.mp3');
         _poisonsMatchedThisLevel++;
         // Poison costs a life, but PURIFIES one adjacent poison card from the board.
         _lives--;
@@ -1188,7 +1188,7 @@ class GameState extends ChangeNotifier {
           _isGameOver = true;
           _flushGame();
           _lastTriggeredEffect = 'game_over';
-          audio.playSfx('sfx/gameover.wav');
+          audio.playSfx('sfx/gameover.mp3');
           if (_isDailyMode && _dailyChallenge != null) {
             _recordDailyFailure();
           }
@@ -1196,7 +1196,7 @@ class GameState extends ChangeNotifier {
         break;
 
       case CardType.healing:
-        audio.playSfx('sfx/heal.wav');
+        audio.playSfx('sfx/heal.mp3');
         _healsReceivedThisLevel++;
         _healingPotionsThisRun++;
         if (_lives < _maxLives) {
@@ -1224,7 +1224,7 @@ class GameState extends ChangeNotifier {
         break;
 
       case CardType.scroll:
-        audio.playSfx('sfx/scroll.wav');
+        audio.playSfx('sfx/scroll.mp3');
         _scrollsMatchedThisLevel++;
         _hintCharges++;
         ach.increment('scrolls_10', 1);
@@ -1262,7 +1262,7 @@ class GameState extends ChangeNotifier {
         break;
 
       case CardType.gem:
-        audio.playSfx('sfx/gem.wav');
+        audio.playSfx('sfx/gem.mp3');
         _gemsMatchedThisLevel++;
         _scoreMultiplier += 0.5;
         ach.increment('gems_100', 1);
@@ -1282,7 +1282,7 @@ class GameState extends ChangeNotifier {
         break;
 
       case CardType.normal:
-        audio.playSfx('sfx/match.wav');
+        audio.playSfx('sfx/match.mp3');
         // Normal tiles just add a small score bonus for being matched.
         _score += 10;
         break;
