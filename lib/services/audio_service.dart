@@ -88,7 +88,7 @@ class AudioService {
     await _ambientPlayer.stop();
     try {
       final path = _getAmbientPath(dungeonId);
-      debugPrint('loading $path audio');
+      debugPrint('loading $path audio for $dungeonId');
       if (path != null) {
         await _ambientPlayer.play(AssetSource('audio/$path'));
         _currentAmbientDungeon = dungeonId;
@@ -117,12 +117,12 @@ class AudioService {
 
   String? _getAmbientPath(String dungeonId) {
     switch (dungeonId) {
-      case 'stone': return 'ambience/stone_drip.mp3';
-      case 'lava': return 'ambience/lava_rumble.mp3';
-      case 'ice': return 'ambience/ice_crack.mp3';
-      case 'crypt': return 'ambience/crypt_wind.mp3';
-      case 'voidChamber': return 'ambience/void_hum.mp3';
-      case 'forest': return 'ambience/forest_whisper.mp3';
+      case 'stone_chamber': return 'ambience/stone_drip.mp3';
+      case 'lava_chamber': return 'ambience/lava_rumble.mp3';
+      case 'ice_chamber': return 'ambience/ice_crack.mp3';
+      case 'crypt_chamber': return 'ambience/crypt_wind.mp3';
+      case 'void_chamber': return 'ambience/void_hum.mp3';
+      case 'forest_chamber': return 'ambience/forest_whisper.mp3';
       default: return null;
     }
   }
