@@ -747,17 +747,22 @@ class _MuteButton extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: audio.mutedValue,
       builder: (context, isMuted, _) {
-        return InkWell(
-          onTap: () {
-            audio.setMuted(!isMuted);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(isMuted ? 'Audio unmuted' : 'Audio muted'),
-                duration: const Duration(seconds: 1),
-                backgroundColor: Colors.black.withValues(alpha: 0.6),
-              ),
-            );
-          },
+            return InkWell(
+              onTap: () {
+                final wasMuted = isMuted;
+                audio.setMuted(!isMuted);
+                // When un-muting, resume dungeon ambient that was paused
+                if (wasMuted && !audio.isMuted) {
+                  audio.resumeAmbientIfUnmuted();
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(isMuted ? 'Audio unmuted' : 'Audio muted'),
+                    duration: const Duration(seconds: 1),
+                    backgroundColor: Colors.black.withValues(alpha: 0.6),
+                  ),
+                );
+              },
           borderRadius: BorderRadius.circular(4),
           child: Container(
             padding: const EdgeInsets.all(6),

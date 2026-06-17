@@ -25,6 +25,9 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
+  /// Listener for mute changes — restarts menu ambient when un-muted.
+  late final VoidCallback _mutedListener;
+
   @override
   void initState() {
     super.initState();
@@ -32,10 +35,19 @@ class _MenuScreenState extends State<MenuScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AudioService().playMenuAmbient();
     });
+    // Listen for mute changes — restart menu ambient when un-muted
+    _mutedListener = () {
+      if (!AudioService().isMuted) {
+        // Just un-muted: restart menu ambient
+        AudioService().playMenuAmbient();
+      }
+    };
+    AudioService().mutedValue.addListener(_mutedListener);
   }
 
   @override
   void dispose() {
+    AudioService().mutedValue.removeListener(_mutedListener);
     // Stop menu ambient when leaving the screen
     AudioService().stopMenuAmbient();
     super.dispose();

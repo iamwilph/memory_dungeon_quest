@@ -24,6 +24,8 @@ class AudioService {
   ValueListenable<bool> get mutedValue => _mutedNotifier;
 
   String? _currentAmbientDungeon;
+  String? _ambientDungeonWhenStopped; // Tracks the dungeon ID when stopAmbient() is called (for un-mute restore)
+  bool _wasMenuPlayingWhenMuted = false; // Tracks whether menu ambient was playing when muted
 
   /// Loads the persisted muted state from disk (if any) and applies it.
   Future<void> loadMutedPreference() async {
@@ -106,8 +108,13 @@ class AudioService {
 
   Future<void> stopAmbient() async {
     await _ambientPlayer.stop();
+    // Remember which dungeon ambient was playing so we can restore it on un-mute
+    _ambientDungeonWhenStopped = _currentAmbientDungeon;
     _currentAmbientDungeon = null;
   }
+
+  /// Returns whether the menu ambient is currently playing.
+  bool get isMenuAmbientPlaying => _menuPlayer.state == PlayerState.playing;
 
   /// Plays the menu ambient loop (dungeon.mp3). Respects muted state.
   Future<void> playMenuAmbient() async {
@@ -128,14 +135,45 @@ class AudioService {
     }
   }
 
+  /// Resumes the last ambient (dungeon or menu) if the user just un-muted.
+  /// Call this after [setMuted(false)] to restart ambient audio that was
+  /// playing before the mute action.
+  Future<void> resumeAmbientIfUnmuted() async {
+    if (_isMuted) return;
+    bool hadDungeon = false;
+    bool hadMenu = false;
+
+    // If we were playing dungeon ambient and it was stopped (e.g. game screen disposed), restart it
+    if (_ambientDungeonWhenStopped != null && _currentAmbientDungeon == null) {
+      hadDungeon = true;
+      await startAmbient(_ambientDungeonWhenStopped!);
+    }
+    // If we were playing menu ambient and it was stopped (e.g. user was on menu, went to settings), restart it
+    if (_wasMenuPlayingWhenMuted) {
+      hadMenu = true;
+      await playMenuAmbient();
+    }
+
+    // Reset flags after consuming so they don't re-trigger on future un-mutes
+    if (hadDungeon) _ambientDungeonWhenStopped = null;
+    if (hadMenu) _wasMenuPlayingWhenMuted = false;
+  }
+
   void setMuted(bool muted) {
+    // When un-muting, capture the ambient context so resumeAmbientIfUnmuted can restore it
+    if (!muted && _isMuted) {
+      _ambientDungeonWhenStopped = _currentAmbientDungeon;
+      _wasMenuPlayingWhenMuted = isMenuAmbientPlaying;
+    }
     _isMuted = muted;
     _mutedNotifier.value = muted; // Notify all listeners
     // Persist the preference immediately
     unawaited(saveMutedPreference());
 
-    // If muting, stop all currently playing ambient audio immediately
+    // If muting, capture state BEFORE stopping so resumeAmbientIfUnmuted can restore it
     if (muted) {
+      _ambientDungeonWhenStopped = _currentAmbientDungeon;
+      _wasMenuPlayingWhenMuted = isMenuAmbientPlaying;
       unawaited(_ambientPlayer.stop());
       unawaited(_menuPlayer.stop());
     }

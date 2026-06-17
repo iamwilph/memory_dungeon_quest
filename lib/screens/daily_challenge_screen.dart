@@ -132,7 +132,7 @@ class DailyChallengeScreen extends StatelessWidget {
                                   
                                   Text(
                                     'DETERMINISTIC SEED: #${todayChallenge.seed}',
-                                    style: DungeonTheme.getBodyStyle(9.0, Colors.white38),
+                                    style: DungeonTheme.getBodyStyle(12.0, Colors.white),
                                     textAlign: TextAlign.center,
                                   ),
 
@@ -211,7 +211,7 @@ class DailyChallengeScreen extends StatelessWidget {
                                     Text(
                                       'A unique tomb generated once per day. Survive to earn +10 bonus coins!',
                                       textAlign: TextAlign.center,
-                                      style: DungeonTheme.getBodyStyle(10.5, Colors.white60),
+                                      style: DungeonTheme.getBodyStyle(12, Colors.white),
                                     ),
                                     const SizedBox(height: 20.0),
                                   ],
@@ -267,7 +267,7 @@ class DailyChallengeScreen extends StatelessWidget {
             label,
             style: GoogleFonts.cinzel(
               fontSize: 10.0,
-              color: Colors.white38,
+              color: Colors.white54,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -326,14 +326,14 @@ class DailyChallengeScreen extends StatelessWidget {
                 Icon(
                   icon,
                   size: 16.0,
-                  color: Colors.black,
+                  color: Colors.white54,
                 ),
                 const SizedBox(width: 8.0),
                 Text(
                   text,
                   style: DungeonTheme.getBodyStyle(
                     11.5,
-                    Colors.black,
+                    Colors.white70,
                     weight: FontWeight.bold,
                   ),
                 ),
