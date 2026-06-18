@@ -126,7 +126,7 @@ class _GameHudState extends State<GameHud> with TickerProviderStateMixin {
       TweenSequenceItem(tween: Tween(begin: 1.4, end: 0.88), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 0.88, end: 1.12), weight: 30),
       TweenSequenceItem(tween: Tween(begin: 1.12, end: 1.0), weight: 30),
-    ]).animate(CurvedAnimation(parent: _multCtrl, curve: Curves.elasticOut));
+    ]).animate(CurvedAnimation(parent: _multCtrl, curve: Curves.linear));
     _multGlow = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _multCtrl, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
     );

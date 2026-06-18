@@ -254,6 +254,9 @@ class GameState extends ChangeNotifier {
   bool _isLevelCleared = false;
   bool _isProgressLoaded = false;
   bool _isPreviewingPuzzle = false;
+  // Set to true when a preview starts so the TipsOverlay can display first.
+  // The flip-back timers are deferred until the overlay calls skipPuzzlePreview().
+  bool _awaitingTipsOverlay = false;
   int _previewSessionId = 0;
   Timer? _previewHoldTimer;
   Timer? _previewUnlockTimer;
@@ -291,6 +294,7 @@ class GameState extends ChangeNotifier {
   bool get isLevelCleared => _isLevelCleared;
   bool get isProgressLoaded => _isProgressLoaded;
   bool get isPreviewingPuzzle => _isPreviewingPuzzle;
+  bool get isAwaitingTipsOverlay => _awaitingTipsOverlay;
   String? get lastTriggeredEffect => _lastTriggeredEffect;
   int get currentLevel => _currentLevel;
   Map<int, int> get dungeonLevelProgress => _dungeonLevelProgress;
@@ -431,6 +435,7 @@ class GameState extends ChangeNotifier {
     _isGameOver = false;
     _isLevelCleared = false;
     _isPreviewingPuzzle = false;
+    _awaitingTipsOverlay = false;
     _lastTriggeredEffect = null;
 
     if (!resetStats) {
@@ -507,6 +512,7 @@ class GameState extends ChangeNotifier {
     _isGameOver = false;
     _isLevelCleared = false;
     _isPreviewingPuzzle = false;
+    _awaitingTipsOverlay = false;
     _lastTriggeredEffect = null;
     
     // Reset level stats
@@ -564,6 +570,7 @@ class GameState extends ChangeNotifier {
     _isGameOver = false;
     _isLevelCleared = false;
     _isPreviewingPuzzle = false;
+    _awaitingTipsOverlay = false;
     _lastTriggeredEffect = null;
 
     _generateCards();
@@ -581,6 +588,7 @@ class GameState extends ChangeNotifier {
     _isGameOver = false;
     _isLevelCleared = false;
     _isPreviewingPuzzle = false;
+    _awaitingTipsOverlay = false;
     _lastTriggeredEffect = null;
     _scoreMultiplier = 1.0;
 
@@ -772,13 +780,42 @@ class GameState extends ChangeNotifier {
 
   void _startPuzzlePreview() {
     _cancelPuzzlePreviewTimers();
-    final sessionId = ++_previewSessionId;
+    ++_previewSessionId;
 
     _isLocked = true;
     _isPreviewingPuzzle = true;
+    _awaitingTipsOverlay = true;
+
+    // Keep cards face-DOWN while the TipsOverlay is showing.
+    // The face-up preview runs after the overlay is dismissed (see
+    // skipPuzzlePreview below).  Resetting isHinted is still useful so
+    // hint highlights don't linger into the new level.
+    for (final card in _cards) {
+      card.isFlipped = false;
+      card.isHinted = false;
+    }
+    notifyListeners();
+  }
+
+  void _cancelPuzzlePreviewTimers() {
+    _previewHoldTimer?.cancel();
+    _previewUnlockTimer?.cancel();
+    _previewHoldTimer = null;
+    _previewUnlockTimer = null;
+  }
+
+  /// Called when the player dismisses the TipsOverlay.
+  /// Flips all cards face-up so the player sees the board briefly,
+  /// then flips them back down and unlocks.
+  void skipPuzzlePreview() {
+    _cancelPuzzlePreviewTimers();
+    _awaitingTipsOverlay = false;
+    ++_previewSessionId;
+    final sessionId = _previewSessionId;
+
+    // Show all cards face-up for the preview hold duration.
     for (final card in _cards) {
       card.isFlipped = true;
-      card.isHinted = false;
     }
     notifyListeners();
 
@@ -786,9 +823,7 @@ class GameState extends ChangeNotifier {
       if (sessionId != _previewSessionId) return;
 
       for (final card in _cards) {
-        if (!card.isMatched) {
-          card.isFlipped = false;
-        }
+        if (!card.isMatched) card.isFlipped = false;
       }
       notifyListeners();
 
@@ -800,13 +835,6 @@ class GameState extends ChangeNotifier {
         notifyListeners();
       });
     });
-  }
-
-  void _cancelPuzzlePreviewTimers() {
-    _previewHoldTimer?.cancel();
-    _previewUnlockTimer?.cancel();
-    _previewHoldTimer = null;
-    _previewUnlockTimer = null;
   }
 
   // Flip a card

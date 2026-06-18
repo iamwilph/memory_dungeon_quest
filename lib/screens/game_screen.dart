@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_state.dart';
 import '../models/dungeon_config.dart';
+import 'tips_overlay.dart';
 import '../theme/dungeon_theme.dart';
 import '../widgets/hud_element.dart';
 import '../widgets/torch_overlay.dart';
@@ -30,6 +31,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _shakeController;
   late AnimationController _flashController;
   Color _flashColor = Colors.transparent;
+
+  // Tracks whether the TipsOverlay should be rendered.  Decoupled from
+  // gameState.isLocked so that the overlay can complete its own fade-out
+  // animation before skipPuzzlePreview() mutates the game state.
+  bool _showTipsOverlay = false;
 
   @override
   void initState() {
@@ -54,6 +60,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       // Add listener to process visual triggers from GameState
       gameState.addListener(_handleStateEffects);
+
+      // Seed the tips-overlay flag: show it when the puzzle preview starts
+      // and tips are pending. isAwaitingTipsOverlay is only true during the
+      // tips phase — not during hint reveals or match-check locks.
+      gameState.addListener(_handlePreviewState);
+      if (gameState.isAwaitingTipsOverlay) {
+        setState(() => _showTipsOverlay = true);
+      }
     });
   }
 
@@ -62,6 +76,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     try {
       final gameState = Provider.of<GameState>(context, listen: false);
       gameState.removeListener(_handleStateEffects);
+      gameState.removeListener(_handlePreviewState);
     } catch (e) {
       debugPrint(e.toString());
     }
@@ -69,6 +84,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _shakeController.dispose();
     _flashController.dispose();
     super.dispose();
+  }
+
+  /// Called by the GameState listener. Shows the TipsOverlay only when
+  /// GameState is specifically awaiting tips (preview start), not for
+  /// every isLocked state (hint reveals, match checks, etc.).
+  void _handlePreviewState() {
+    if (!mounted) return;
+    final gameState = Provider.of<GameState>(context, listen: false);
+    if (gameState.isAwaitingTipsOverlay && !_showTipsOverlay) {
+      setState(() => _showTipsOverlay = true);
+    }
+  }
+
+  /// Called by TipsOverlay after its own dismiss animation finishes.
+  /// Hides the overlay first, then tells GameState to end the preview —
+  /// this order prevents GameState from rebuilding the tree (and therefore
+  /// removing the overlay widget) while its fade-out is still running.
+  void _onTipsOverlayDone() {
+    if (!mounted) return;
+    setState(() => _showTipsOverlay = false);
+    final gameState = Provider.of<GameState>(context, listen: false);
+    gameState.skipPuzzlePreview();
   }
 
   // React to game engine events with high-fidelity visual feedback
@@ -271,6 +308,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
             ),
+
+          // 5c. Tips Overlay — floats above the entire game scene during the
+          //     puzzle preview phase.  Positioned here (above flash/vignette
+          //     layers, below game-over) so it is always visible and always
+          //     the topmost interactive surface when active.
+          //
+          //     _showTipsOverlay is managed independently of gameState.isLocked
+          //     so the overlay can complete its own fade-out animation before
+          //     skipPuzzlePreview() mutates the game tree.
+          if (_showTipsOverlay) ...[
+            // ModalBarrier covers the whole screen, blocking all game touches,
+            // but does NOT absorb touches on widgets above it in the Stack
+            // (the TipsOverlay card below this entry).
+            const ModalBarrier(dismissible: false, color: Color(0x8C000000)),
+            // Centred card panel — sits above the ModalBarrier and is fully interactive
+            Center(
+              child: TipsOverlay(
+                dungeonId: gameState.activeDungeon.id,
+                levelIndex: gameState.currentLevel - 1,
+                cards: gameState.cards,
+                onStartGame: _onTipsOverlayDone,
+              ),
+            ),
+          ],
 
           // 6. Game Over Overlay Dialog Panel
           if (gameState.isGameOver)

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -16,181 +15,199 @@ class AudioService {
     _menuVolumeNotifier = ValueNotifier<double>(_menuVolume);
   }
 
-  late final AudioPlayer _sfxPlayer;   // Short sounds, overlap-friendly
-  late final AudioPlayer _ambientPlayer; // Long looping ambient tracks
-  late final AudioPlayer _menuPlayer;   // Long looping menu ambient
+  late final AudioPlayer _sfxPlayer;
+  late final AudioPlayer _ambientPlayer;
+  late final AudioPlayer _menuPlayer;
 
   bool _isMuted = false;
   late ValueNotifier<bool> _mutedNotifier;
 
-  /// SFX volume (0.0–1.0).
   double _sfxVolume = 1.0;
   late ValueNotifier<double> _sfxVolumeNotifier;
 
-  /// Ambient volume (0.0–1.0).
   double _ambientVolume = 1.0;
   late ValueNotifier<double> _ambientVolumeNotifier;
 
-  /// Menu ambient volume (0.0–1.0).
   double _menuVolume = 1.0;
   late ValueNotifier<double> _menuVolumeNotifier;
 
-  /// Exposed for reactive UI — widgets can listen via ValueListenableBuilder.
   ValueListenable<bool> get mutedValue => _mutedNotifier;
   ValueListenable<double> get sfxVolumeValue => _sfxVolumeNotifier;
   ValueListenable<double> get ambientVolumeValue => _ambientVolumeNotifier;
   ValueListenable<double> get menuVolumeValue => _menuVolumeNotifier;
 
   String? _currentAmbientDungeon;
-  String? _ambientDungeonWhenStopped; // Tracks the dungeon ID when stopAmbient() is called (for un-mute restore)
-  // bool _wasMenuPlayingWhenMuted = false; // Tracks whether menu ambient was playing when muted
+  String? _ambientDungeonWhenStopped;
 
-  /// Loads the persisted muted state from disk (if any) and applies it.
+  // ---------------------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------------------
+
+  void init() {
+    _sfxPlayer = AudioPlayer(playerId: 'sfx');
+    _ambientPlayer = AudioPlayer(playerId: 'ambient');
+    _menuPlayer = AudioPlayer(playerId: 'menu-ambient');
+
+    // ReleaseMode.stop keeps the native player alive so setVolume() always
+    // reaches a live native object between plays.
+    _sfxPlayer.setReleaseMode(ReleaseMode.stop);
+    _ambientPlayer.setReleaseMode(ReleaseMode.loop);
+    _menuPlayer.setReleaseMode(ReleaseMode.loop);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Persistence — mute
+  // ---------------------------------------------------------------------------
+
   Future<void> loadMutedPreference() async {
     try {
       final file = await _mutedFile();
       if (file.existsSync()) {
         final raw = await file.readAsString();
         final data = jsonDecode(raw);
-        if (data is bool && data != _isMuted) {
+        if (data is bool) {
           _isMuted = data;
           _mutedNotifier.value = _isMuted;
         }
       }
-    } catch (e) {
-      // Corrupted file — ignore, stick with default false
-    }
+    } catch (_) {}
   }
 
-  /// Saves the current muted state to disk.
   Future<void> saveMutedPreference() async {
     try {
       final file = await _mutedFile();
       await file.writeAsString(jsonEncode(_isMuted), flush: true);
-    } catch (e) {
-      // Silently fail — muted preference is non-critical
-    }
+    } catch (_) {}
   }
 
   Future<File> _mutedFile() async {
-    final directory = await getApplicationSupportDirectory();
-    return File('${directory.path}/audio_muted.json');
+    final dir = await getApplicationSupportDirectory();
+    return File('${dir.path}/audio_muted.json');
   }
 
-  /// Returns the volumes file path.
-  Future<File> _volumesFile() async {
-    final directory = await getApplicationSupportDirectory();
-    return File('${directory.path}/audio_volumes.json');
-  }
+  // ---------------------------------------------------------------------------
+  // Persistence — volume
+  // ---------------------------------------------------------------------------
 
-  /// Loads persisted volume values from disk.
+  /// Loads saved volumes from disk and applies them to all three players.
+  /// Must be called AFTER init() so the AudioPlayer instances exist.
   Future<void> loadVolumePreferences() async {
     try {
       final file = await _volumesFile();
       if (file.existsSync()) {
         final raw = await file.readAsString();
         final data = jsonDecode(raw) as Map<String, dynamic>;
-        if (data['sfxVolume'] is double && data['sfxVolume'] != _sfxVolume) {
-          _sfxVolume = data['sfxVolume'] as double;
+
+        if (data['sfxVolume'] is double) {
+          _sfxVolume = (data['sfxVolume'] as double).clamp(0.0, 1.0);
           _sfxVolumeNotifier.value = _sfxVolume;
         }
-        if (data['ambientVolume'] is double && data['ambientVolume'] != _ambientVolume) {
-          _ambientVolume = data['ambientVolume'] as double;
+        if (data['ambientVolume'] is double) {
+          _ambientVolume = (data['ambientVolume'] as double).clamp(0.0, 1.0);
           _ambientVolumeNotifier.value = _ambientVolume;
         }
-        if (data['menuVolume'] is double && data['menuVolume'] != _menuVolume) {
-          _menuVolume = data['menuVolume'] as double;
+        if (data['menuVolume'] is double) {
+          _menuVolume = (data['menuVolume'] as double).clamp(0.0, 1.0);
           _menuVolumeNotifier.value = _menuVolume;
         }
       }
-    } catch (e) {
-      // Corrupted file — ignore, stick with defaults
-    }
+    } catch (_) {}
+
+    // Always push loaded (or default) values to the native players so the
+    // hardware level matches the Dart state from the very first play() call.
+    await _sfxPlayer.setVolume(_sfxVolume);
+    await _ambientPlayer.setVolume(_ambientVolume);
+    await _menuPlayer.setVolume(_menuVolume);
   }
 
-  /// Saves all volume values to disk.
   Future<void> saveVolumePreferences() async {
     try {
       final file = await _volumesFile();
-      final data = {
-        'sfxVolume': _sfxVolume,
-        'ambientVolume': _ambientVolume,
-        'menuVolume': _menuVolume,
-      };
-      await file.writeAsString(jsonEncode(data), flush: true);
-    } catch (e) {
-      // Silently fail — volume preference is non-critical
-    }
+      await file.writeAsString(
+        jsonEncode({
+          'sfxVolume': _sfxVolume,
+          'ambientVolume': _ambientVolume,
+          'menuVolume': _menuVolume,
+        }),
+        flush: true,
+      );
+    } catch (_) {}
   }
 
-  void init() {
-    _sfxPlayer = AudioPlayer(playerId: 'sfx');
-    _ambientPlayer = AudioPlayer(playerId: 'ambient');
-    _menuPlayer = AudioPlayer(playerId: 'menu-ambient');
-    // ReleaseMode.stop keeps the native player alive after playback ends so
-    // that setVolume() calls between plays are not discarded. The default
-    // ReleaseMode.release tears down the native engine after each sound,
-    // meaning any setVolume() applied to an idle player targets a
-    // non-existent native object and is silently ignored.
-    _sfxPlayer.setReleaseMode(ReleaseMode.stop);
-    // Configure ambient players for looping
-    _ambientPlayer.setReleaseMode(ReleaseMode.loop);
-    _menuPlayer.setReleaseMode(ReleaseMode.loop);
-    // Load persisted volume preferences
-    unawaited(loadVolumePreferences());
+  Future<File> _volumesFile() async {
+    final dir = await getApplicationSupportDirectory();
+    return File('${dir.path}/audio_volumes.json');
   }
 
-  /// Sets the SFX volume (0.0–1.0) and persists it.
-  /// Applies immediately to any currently-playing SFX track.
+  // ---------------------------------------------------------------------------
+  // Volume setters
+  // ---------------------------------------------------------------------------
+
+  /// Called by the SFX slider. Updates the Dart field, the notifier (so the
+  /// slider UI reflects the value), the native player level, and persists.
   void setSfxVolume(double volume) {
     _sfxVolume = volume.clamp(0.0, 1.0);
     _sfxVolumeNotifier.value = _sfxVolume;
-    // Push the new volume to the native player immediately. With
-    // ReleaseMode.stop the native player persists between plays so this
-    // always reaches a live native object.
-    unawaited(_sfxPlayer.setVolume(_sfxVolume));
-    unawaited(saveVolumePreferences());
+    // setVolume() on the native player works reliably when ReleaseMode.stop
+    // is set — the native player stays alive between sounds.
+    _sfxPlayer.setVolume(_sfxVolume);
+    saveVolumePreferences();
   }
 
-  /// Sets the ambient volume (0.0–1.0) and persists it.
-  /// Applies immediately to any currently-playing ambient track.
+  /// Called by the AMBIENT slider. Controls both the dungeon loop and the
+  /// menu ambient loop — there is only one AMBIENT slider in Settings.
   void setAmbientVolume(double volume) {
     _ambientVolume = volume.clamp(0.0, 1.0);
+    _menuVolume = _ambientVolume; // single slider controls both
     _ambientVolumeNotifier.value = _ambientVolume;
-    // Apply immediately — ambient uses ReleaseMode.loop so the native
-    // player always persists. This also handles live slider drag updates.
-    unawaited(_ambientPlayer.setVolume(_ambientVolume));
-    unawaited(saveVolumePreferences());
+    _menuVolumeNotifier.value = _menuVolume;
+    // setVolume() reaches the native player immediately while the loop is
+    // playing — this is what makes the slider feel live.
+    _ambientPlayer.setVolume(_ambientVolume);
+    _menuPlayer.setVolume(_menuVolume);
+    saveVolumePreferences();
   }
 
-  /// Sets the menu ambient volume (0.0–1.0) and persists it.
-  /// Applies immediately to any currently-playing menu track.
+  /// Internal — only used if you ever add a separate menu slider.
   void setMenuVolume(double volume) {
     _menuVolume = volume.clamp(0.0, 1.0);
     _menuVolumeNotifier.value = _menuVolume;
-    unawaited(_menuPlayer.setVolume(_menuVolume));
-    unawaited(saveVolumePreferences());
+    _menuPlayer.setVolume(_menuVolume);
+    saveVolumePreferences();
   }
+
+  // ---------------------------------------------------------------------------
+  // Playback
+  // ---------------------------------------------------------------------------
 
   Future<void> playSfx(String assetPath) async {
     if (_isMuted) return;
     try {
-      // Pass volume directly into play() — this is the only reliable way to
-      // set volume in audioplayers. setVolume() on a separate call is racy
-      // and ignored on many platforms when the source is reloaded.
-      await _sfxPlayer.play(
-        AssetSource('audio/$assetPath'),
-        volume: _sfxVolume,
-      );
-    } catch (e) {
-      // Silently fail if asset missing — don't crash the game
-    }
+      // Do NOT pass volume: here. The player-level volume set by setSfxVolume /
+      // loadVolumePreferences is already applied to the native player.
+      // Passing volume: into play() overrides the player-level volume on every
+      // call, which means any setVolume() call between plays is silently undone.
+      await _sfxPlayer.play(AssetSource('audio/$assetPath'));
+    } catch (_) {}
   }
 
-  Future<void> playSfxOnce({required String assetPath, required void Function() onComplete}) async {
-    if (_isMuted) { onComplete(); return; }
-    final player = AudioPlayer(playerId: 'sfx-once');
-    await player.play(AssetSource('audio/$assetPath'), volume: _sfxVolume);
+  Future<void> playSfxOnce({
+    required String assetPath,
+    required void Function() onComplete,
+  }) async {
+    if (_isMuted) {
+      onComplete();
+      return;
+    }
+    // Unique playerId per call prevents concurrent one-shot sounds from
+    // stomping each other's native player instance.
+    final player = AudioPlayer(
+      playerId: 'sfx-once-${DateTime.now().microsecondsSinceEpoch}',
+    );
+    player.setReleaseMode(ReleaseMode.stop);
+    // Apply the current SFX volume to this fresh player before playing.
+    await player.setVolume(_sfxVolume);
+    await player.play(AssetSource('audio/$assetPath'));
     player.onPlayerComplete.listen((_) {
       onComplete();
       player.dispose();
@@ -199,93 +216,85 @@ class AudioService {
 
   Future<void> startAmbient(String dungeonId) async {
     if (_isMuted || _currentAmbientDungeon == dungeonId) return;
-    // Stop current ambient first    
     await _ambientPlayer.stop();
     try {
       final path = _getAmbientPath(dungeonId);
       debugPrint('loading $path audio for $dungeonId');
       if (path != null) {
-        await _ambientPlayer.play(AssetSource('audio/$path'), volume: _ambientVolume);
+        // Do NOT pass volume: here — same reason as playSfx.
+        await _ambientPlayer.play(AssetSource('audio/$path'));
         _currentAmbientDungeon = dungeonId;
       } else {
-        // Fallback: no ambient, just silence or generic stone ambience
         _currentAmbientDungeon = 'generic';
       }
-    } catch (e) {
+    } catch (_) {
       _currentAmbientDungeon = null;
     }
   }
 
   Future<void> stopAmbient() async {
     await _ambientPlayer.stop();
-    // Remember which dungeon ambient was playing so we can restore it on un-mute
     _ambientDungeonWhenStopped = _currentAmbientDungeon;
     _currentAmbientDungeon = null;
   }
 
-  /// Returns whether the menu ambient is currently playing.
   bool get isMenuAmbientPlaying => _menuPlayer.state == PlayerState.playing;
 
-  /// Plays the menu ambient loop (dungeon.mp3). Respects muted state.
   Future<void> playMenuAmbient() async {
     if (_isMuted) return;
     try {
-      await _menuPlayer.play(AssetSource('audio/ambience/dungeon.mp3'), volume: _menuVolume);
-    } catch (e) {
-      // Silently fail if asset missing
-    }
+      await _menuPlayer.play(AssetSource('audio/ambience/dungeon.mp3'));
+    } catch (_) {}
   }
 
-  /// Stops the menu ambient audio.
   Future<void> stopMenuAmbient() async {
     try {
       await _menuPlayer.stop();
-    } catch (e) {
-      // Silently fail
-    }
+    } catch (_) {}
   }
 
-  /// Resumes dungeon ambient after un-muting (if a dungeon was active).
-  /// Menu ambient is handled separately by MenuScreen's mute listener.
   Future<void> resumeAmbientIfUnmuted() async {
     if (_isMuted) return;
     if (_ambientDungeonWhenStopped != null && _currentAmbientDungeon == null) {
       final dungeonId = _ambientDungeonWhenStopped!;
-      _ambientDungeonWhenStopped = null; // clear before await to prevent double-trigger
+      _ambientDungeonWhenStopped = null;
       await startAmbient(dungeonId);
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Mute
+  // ---------------------------------------------------------------------------
+
   void setMuted(bool muted) {
     if (muted) {
-      // Capture what is playing NOW, before we stop anything, so
-      // resumeAmbientIfUnmuted() knows what to restart on un-mute.
       _ambientDungeonWhenStopped = _currentAmbientDungeon;
-      // _wasMenuPlayingWhenMuted = isMenuAmbientPlaying;
       _isMuted = true;
       _mutedNotifier.value = true;
-      unawaited(_ambientPlayer.stop());
-      unawaited(_menuPlayer.stop());
+      _ambientPlayer.stop();
+      _menuPlayer.stop();
     } else {
-      // Un-muting: flip the flag first so playMenuAmbient / startAmbient
-      // don't bail out early, then resume whatever was playing.
       _isMuted = false;
       _mutedNotifier.value = false;
     }
-    unawaited(saveMutedPreference());
+    saveMutedPreference();
   }
 
   bool get isMuted => _isMuted;
 
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
   String? _getAmbientPath(String dungeonId) {
     switch (dungeonId) {
-      case 'stone_chamber': return 'ambience/stone_drip.mp3';
-      case 'lava_chamber': return 'ambience/lava_rumble.mp3';
-      case 'ice_chamber': return 'ambience/ice_crack.mp3';
-      case 'crypt_chamber': return 'ambience/crypt_wind.mp3';
-      case 'void_chamber': return 'ambience/void_hum.mp3';
+      case 'stone_chamber':  return 'ambience/stone_drip.mp3';
+      case 'lava_chamber':   return 'ambience/lava_rumble.mp3';
+      case 'ice_chamber':    return 'ambience/ice_crack.mp3';
+      case 'crypt_chamber':  return 'ambience/crypt_wind.mp3';
+      case 'void_chamber':   return 'ambience/void_hum.mp3';
       case 'forest_chamber': return 'ambience/forest_whisper.mp3';
-      default: return null;
+      default:               return null;
     }
   }
 

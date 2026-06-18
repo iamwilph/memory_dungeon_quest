@@ -7,22 +7,27 @@ import 'services/local_campaign_progress_store.dart';
 import 'services/audio_service.dart';
 import 'services/high_score_service.dart';
 import 'services/achievement_manager.dart';
+import 'services/tips_state_service.dart';
 
 Future<void> main() async {
   // Ensure widget bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize audio service and load persisted muted preference
+  // Initialize audio service and load persisted preferences
   AudioService().init();
   await AudioService().loadMutedPreference();
+  await AudioService().loadVolumePreferences();
   
   // Initialize high score service
   await HighScoreService().init();
   
-  // Initialize achievement manager
-  AchievementManager().init();
-  
-  runApp(
+   // Initialize achievement manager
+   AchievementManager().init();
+   
+   // Initialize tips state service (tracks seen pieces per dungeon+level)
+   await TipsStateService().init();
+   
+   runApp(
     ChangeNotifierProvider(
       create: (context) => GameState(
         progressStore: LocalCampaignProgressStore(),
