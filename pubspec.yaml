@@ -34,7 +34,10 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_launcher_icons: ^0.14.4
+  flutter_riverpod: ^3.3.2
   google_fonts: ^8.1.0
+  google_mobile_ads: ^9.0.0
+  logger: ^2.7.0
   path_provider: ^2.1.5
   provider: ^6.1.5+1
   shared_preferences: ^2.5.5

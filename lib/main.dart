@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'models/game_state.dart';
 import 'screens/menu_screen.dart';
@@ -12,27 +14,29 @@ import 'services/tips_state_service.dart';
 Future<void> main() async {
   // Ensure widget bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  await MobileAds.instance.initialize();
+
   // Initialize audio service and load persisted preferences
   AudioService().init();
   await AudioService().loadMutedPreference();
   await AudioService().loadVolumePreferences();
-  
+
   // Initialize high score service
   await HighScoreService().init();
-  
-   // Initialize achievement manager
-   AchievementManager().init();
-   
-   // Initialize tips state service (tracks seen pieces per dungeon+level)
-   await TipsStateService().init();
-   
-   runApp(
+
+  // Initialize achievement manager
+  AchievementManager().init();
+
+  // Initialize tips state service (tracks seen pieces per dungeon+level)
+  await TipsStateService().init();
+
+  runApp(
     ChangeNotifierProvider(
-      create: (context) => GameState(
-        progressStore: LocalCampaignProgressStore(),
-      )..loadCampaignProgress(),
-      child: const MemoryDungeonApp(),
+      create: (context) =>
+          GameState(progressStore: LocalCampaignProgressStore())
+            ..loadCampaignProgress(),
+      child: ProviderScope(child: const MemoryDungeonApp()),
     ),
   );
 }

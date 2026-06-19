@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
+import 'package:memory_dungeon/providers/consent_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_state.dart';
@@ -17,14 +19,14 @@ import 'daily_challenge_screen.dart';
 import 'tutorial_hint.dart';
 import 'settings_screen.dart';
 
-class MenuScreen extends StatefulWidget {
+class MenuScreen extends ConsumerStatefulWidget {
   const MenuScreen({super.key});
 
   @override
-  State<MenuScreen> createState() => _MenuScreenState();
+  ConsumerState<MenuScreen> createState() => _MenuScreenState();
 }
 
-class _MenuScreenState extends State<MenuScreen> {
+class _MenuScreenState extends ConsumerState<MenuScreen> {
   /// Listener for mute changes — restarts menu ambient when un-muted.
   late final VoidCallback _mutedListener;
 
@@ -32,6 +34,13 @@ class _MenuScreenState extends State<MenuScreen> {
   void initState() {
     super.initState();
     // Start menu ambient audio when the screen loads
+    final isConsentGiven = ref
+        .read(consentControllerProvider)
+        .unwrapPrevious()
+        .value;
+    if (!(isConsentGiven ?? false)) {
+      ref.read(consentControllerProvider.notifier).updateConsent();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AudioService().playMenuAmbient();
     });
@@ -74,19 +83,13 @@ class _MenuScreenState extends State<MenuScreen> {
       body: Stack(
         children: [
           // Background Gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: baseTheme.bgGradient,
-            ),
-          ),
+          Container(decoration: BoxDecoration(gradient: baseTheme.bgGradient)),
 
           // Ambient Particles
           const AmbientParticles(),
 
           // Torchlight ambience and Vignette
-          const TorchOverlay(
-            child: SizedBox.expand(),
-          ),
+          const TorchOverlay(child: SizedBox.expand()),
 
           // Portal graphics & Title layout
           Center(
@@ -95,47 +98,60 @@ class _MenuScreenState extends State<MenuScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 40.0),
-                  
+
                   // Rotating Runic Portal Ring
                   const RunicPortalWidget(),
-                  
+
                   const SizedBox(height: 30.0),
-                  
+
                   // Game Logo Header
                   Text(
                     'MEMORY',
-                    style: DungeonTheme.getRuneStyle(36.0, baseTheme.primaryColor),
+                    style: DungeonTheme.getRuneStyle(
+                      36.0,
+                      baseTheme.primaryColor,
+                    ),
                   ),
                   Text(
-                    'DUNGEON',
-                    style: DungeonTheme.getTitleStyle(context, const Color(0xFFF1C40F)),
+                    'DUNGEON QUEST',
+                    style: DungeonTheme.getTitleStyle(
+                      context,
+                      const Color(0xFFF1C40F),
+                    ),
                   ),
-                  
+
                   const SizedBox(height: 10.0),
-                  
+
                   Text(
                     '— MEMORY-MATCHING DUNGEON CRAWLER —',
-                    style: DungeonTheme.getBodyStyle(12.0, baseTheme.primaryColor.withValues(alpha:0.7)),
+                    style: DungeonTheme.getBodyStyle(
+                      12.0,
+                      baseTheme.primaryColor.withValues(alpha: 0.7),
+                    ),
                   ),
-                  
+
                   const SizedBox(height: 50.0),
-                  
+
                   // Action Menu
                   MenuButton(
-                    text: gameState.isProgressLoaded ? 'DESCEND' : 'READING SEALS',
+                    text: gameState.isProgressLoaded
+                        ? 'DESCEND'
+                        : 'READING SEALS',
                     icon: Icons.double_arrow,
                     onPressed: () {
                       if (!gameState.isProgressLoaded) return;
                       gameState.resumeCampaign();
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const GameScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const GameScreen(),
+                        ),
                       );
                     },
                   ),
-                  
+
                   const SizedBox(height: 16.0),
-                  
+
                   MenuButton(
                     text: 'HOW TO PLAY',
                     icon: Icons.menu_book,
@@ -143,29 +159,33 @@ class _MenuScreenState extends State<MenuScreen> {
                       _showHowToPlayDialog(context);
                     },
                   ),
-                  
+
                   const SizedBox(height: 16.0),
-                  
+
                   MenuButton(
                     text: 'CAMPAIGN MAP',
                     icon: Icons.map,
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const CampaignMapScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const CampaignMapScreen(),
+                        ),
                       );
                     },
                   ),
 
                   const SizedBox(height: 16.0),
-                  
+
                   MenuButton(
                     text: 'ARTIFACT MARKET',
                     icon: Icons.store,
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const ShopScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const ShopScreen(),
+                        ),
                       );
                     },
                   ),
@@ -178,7 +198,9 @@ class _MenuScreenState extends State<MenuScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const AchievementsScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const AchievementsScreen(),
+                        ),
                       );
                     },
                   ),
@@ -191,7 +213,9 @@ class _MenuScreenState extends State<MenuScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const DailyChallengeScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const DailyChallengeScreen(),
+                        ),
                       );
                     },
                   ),
@@ -204,11 +228,13 @@ class _MenuScreenState extends State<MenuScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
                       );
                     },
                   ),
-                  
+
                   const SizedBox(height: 40.0),
                 ],
               ),
@@ -223,11 +249,14 @@ class _MenuScreenState extends State<MenuScreen> {
   void _showHowToPlayDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha:0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20.0,
+            vertical: 24.0,
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
             child: HudElement(
@@ -241,11 +270,14 @@ class _MenuScreenState extends State<MenuScreen> {
                   Center(
                     child: Text(
                       'SCROLL OF RULES',
-                      style: DungeonTheme.getTitleStyle(context, const Color(0xFFF1C40F)),
+                      style: DungeonTheme.getTitleStyle(
+                        context,
+                        const Color(0xFFF1C40F),
+                      ),
                     ),
                   ),
                   const Divider(color: Colors.white24, height: 24.0),
-                  
+
                   Flexible(
                     child: SingleChildScrollView(
                       child: Column(
@@ -260,15 +292,36 @@ class _MenuScreenState extends State<MenuScreen> {
                             'Matching specific tile classes triggers powerful dungeon interactions:',
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(left: 12.0, bottom: 12.0),
+                            padding: const EdgeInsets.only(
+                              left: 12.0,
+                              bottom: 12.0,
+                            ),
                             child: Column(
                               children: [
-                                _buildItemRow('🧪 Healing Potion', 'Restores 1 life point (Max 5).'),
-                                _buildItemRow('🤢 / 💀 Poison Trap', 'Deducts 1 life point. Avoid matching traps!'),
-                                _buildItemRow('🪙 Treasure / Gold', 'Awards coins scaled by level multiplier.'),
-                                _buildItemRow('📜 Magic Scroll', 'Adds +1 Hint charge (reveals face-down cards).'),
-                                _buildItemRow('💎 Mystical Gem', 'Boosts your score multiplier by +0.5x.'),
-                                _buildItemRow('🔑 / 🧱 / 🪓 normal', 'Grants basic exploration points.'),
+                                _buildItemRow(
+                                  '🧪 Healing Potion',
+                                  'Restores 1 life point (Max 5).',
+                                ),
+                                _buildItemRow(
+                                  '🤢 / 💀 Poison Trap',
+                                  'Deducts 1 life point. Avoid matching traps!',
+                                ),
+                                _buildItemRow(
+                                  '🪙 Treasure / Gold',
+                                  'Awards coins scaled by level multiplier.',
+                                ),
+                                _buildItemRow(
+                                  '📜 Magic Scroll',
+                                  'Adds +1 Hint charge (reveals face-down cards).',
+                                ),
+                                _buildItemRow(
+                                  '💎 Mystical Gem',
+                                  'Boosts your score multiplier by +0.5x.',
+                                ),
+                                _buildItemRow(
+                                  '🔑 / 🧱 / 🪓 normal',
+                                  'Grants basic exploration points.',
+                                ),
                               ],
                             ),
                           ),
@@ -279,15 +332,15 @@ class _MenuScreenState extends State<MenuScreen> {
                           _buildRuleSection(
                             'Chamber Hazards (Penalties)',
                             '• Stone Chamber: Safe. Mismatching cards is harmless.\n'
-                            '• Lava, Ice, and Crypt Chambers: Severe. Every mismatch costs 1 Life. Train your memory before proceeding!',
+                                '• Lava, Ice, and Crypt Chambers: Severe. Every mismatch costs 1 Life. Train your memory before proceeding!',
                           ),
                         ],
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16.0),
-                  
+
                   Center(
                     child: MenuButton(
                       text: 'CLOSE SCROLL',
@@ -352,10 +405,7 @@ class _MenuScreenState extends State<MenuScreen> {
           Expanded(
             child: Text(
               description,
-              style: GoogleFonts.cinzel(
-                fontSize: 11.0,
-                color: Colors.white60,
-              ),
+              style: GoogleFonts.cinzel(fontSize: 11.0, color: Colors.white60),
             ),
           ),
         ],
@@ -372,9 +422,8 @@ class RunicPortalWidget extends StatefulWidget {
   State<RunicPortalWidget> createState() => _RunicPortalWidgetState();
 }
 
-
-
-class _RunicPortalWidgetState extends State<RunicPortalWidget> with SingleTickerProviderStateMixin {
+class _RunicPortalWidgetState extends State<RunicPortalWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _rotationController;
 
   @override
@@ -404,10 +453,7 @@ class _RunicPortalWidgetState extends State<RunicPortalWidget> with SingleTicker
             height: 140,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0x22F1C40F),
-                width: 6.0,
-              ),
+              border: Border.all(color: const Color(0x22F1C40F), width: 6.0),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0x11F1C40F),
@@ -422,16 +468,16 @@ class _RunicPortalWidgetState extends State<RunicPortalWidget> with SingleTicker
               height: 110,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0x337F8C8D),
-                  width: 2.0,
-                ),
+                border: Border.all(color: const Color(0x337F8C8D), width: 2.0),
               ),
               child: Center(
                 child: Text(
                   'ᛗ  ᚦ  ᚠ  ᛋ\nᚱ     ᛞ\nᛒ  ᛖ  ᚺ  ᚾ',
                   textAlign: TextAlign.center,
-                  style: DungeonTheme.getRuneStyle(12.0, const Color(0x44F1C40F)),
+                  style: DungeonTheme.getRuneStyle(
+                    12.0,
+                    const Color(0x44F1C40F),
+                  ),
                 ),
               ),
             ),
@@ -467,7 +513,7 @@ class _MenuButtonState extends State<MenuButton> {
   @override
   Widget build(BuildContext context) {
     final activeColor = widget.color ?? const Color(0xFFF1C40F);
-    
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -482,14 +528,19 @@ class _MenuButtonState extends State<MenuButton> {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: _isHovered ? activeColor.withValues(alpha:0.2) : Colors.black.withValues(alpha:0.3),
+                  color: _isHovered
+                      ? activeColor.withValues(alpha: 0.2)
+                      : Colors.black.withValues(alpha: 0.3),
                   blurRadius: _isHovered ? 8.0 : 4.0,
                   offset: const Offset(2, 3),
                 ),
               ],
             ),
             child: HudElement(
-              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 12.0,
+                horizontal: 8.0,
+              ),
               borderRadius: 6.0,
               drawCracks: _isHovered, // Highlight crack lines on hover
               borderWidth: _isHovered ? 2.0 : 1.5,
@@ -509,7 +560,7 @@ class _MenuButtonState extends State<MenuButton> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: DungeonTheme.getBodyStyle(
-                        12.0, 
+                        12.0,
                         _isHovered ? activeColor : Colors.white,
                         weight: FontWeight.bold,
                       ),

@@ -3,6 +3,9 @@
         android:label="Memory Dungeon Quest"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-1090169600845784~3334761849"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
