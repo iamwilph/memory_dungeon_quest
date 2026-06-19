@@ -16,6 +16,7 @@ import '../widgets/ambient_particles.dart';
 import '../widgets/dungeon_card_widget.dart';
 import '../services/audio_service.dart';
 import '../services/achievement_manager.dart';
+import '../widgets/ad_banner.dart';
 import 'menu_screen.dart';
 import 'dungeon_selector_screen.dart';
 import 'shop_screen.dart';
@@ -216,9 +217,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final currentDungeon = gameState.activeDungeon;
     final theme = DungeonTheme.getTheme(currentDungeon.themeType);
 
-    return Scaffold(
-      body: Stack(
+        return Scaffold(
+      body: Column(
         children: [
+          Expanded(
+            child: Stack(
+              children: [
           // 1. Ambient Background Layer
           Container(decoration: BoxDecoration(gradient: theme.bgGradient)),
 
@@ -352,6 +356,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             _StreakCounterOverlay(
               streakCount: gameState.streakCount,
             ),
+              ],
+            ),
+          ),
+          const AdBanner(),
         ],
       ),
     );

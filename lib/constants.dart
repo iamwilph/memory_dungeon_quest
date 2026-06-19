@@ -1,7 +1,5 @@
 //TODO -- enable during release
-const bool kIsDebugMode = false;
+const bool kIsDebugMode = true;
 const bool kShowAds = false;
 
-//TODO
-// impelemtn Admob
-// generate release key
+//TODO -- generate release key
