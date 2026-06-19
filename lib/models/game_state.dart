@@ -1239,7 +1239,7 @@ class GameState extends ChangeNotifier {
         break;
 
       case CardType.treasure:
-        audio.playSfx('sfx/treasure.wav');
+        audio.playSfx('sfx/treasure.mp3');
         _treasuresMatchedThisLevel++;
         final baseTreasureCoins = 1 + (_currentLevel ~/ 5);
         // Greed Rune: 2× coin reward for treasure
