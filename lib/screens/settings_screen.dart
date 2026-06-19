@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/game_state.dart';
 import '../models/dungeon_config.dart';
 import '../theme/dungeon_theme.dart';
@@ -8,6 +9,7 @@ import '../widgets/hud_element.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
 import '../services/audio_service.dart';
+import 'terms_of_use_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -58,6 +60,14 @@ class SettingsScreen extends StatelessWidget {
 
                             // Volume Sliders
                             _buildVolumeSliders(context),
+                            const SizedBox(height: 32),
+
+                            // Terms of Use
+                            _buildTermsButton(context),
+                            const SizedBox(height: 32),
+
+                            // Privacy Policy
+                            _buildPrivacyPolicyButton(context),
                             const SizedBox(height: 32),
 
                             // Reset Campaign
@@ -292,6 +302,64 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTermsButton(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TermsOfUseScreen()),
+      ),
+      child: HudElement(
+        padding: const EdgeInsets.all(16),
+        borderRadius: 10,
+        seed: 77,
+        child: Row(
+          children: [
+            Icon(Icons.description, size: 18, color: const Color(0xFFF1C40F)),
+            const SizedBox(width: 12),
+            Text(
+              'TERMS OF USE',
+              style: DungeonTheme.getBodyStyle(14, Colors.white, weight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPrivacyPolicy(BuildContext context) async {
+    const placeholderUrl = 'https://wilfredcruzph.wixsite.com/memory-dungeon';
+    final uri = Uri.parse(placeholderUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!context.mounted) return;
+      final snackBar = SnackBar(
+        content: const Text('Could not open privacy policy.'),
+        backgroundColor: const Color(0xFFE74C3C),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
+  }
+
+  Widget _buildPrivacyPolicyButton(BuildContext context) {
+    return InkWell(
+      onTap: () => _openPrivacyPolicy(context),
+      child: HudElement(
+        padding: const EdgeInsets.all(16),
+        borderRadius: 10,
+        seed: 88,
+        child: Row(
+          children: [
+            Icon(Icons.privacy_tip, size: 18, color: const Color(0xFFF1C40F)),
+            const SizedBox(width: 12),
+            Text(
+              'PRIVACY POLICY',
+              style: DungeonTheme.getBodyStyle(14, Colors.white, weight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
