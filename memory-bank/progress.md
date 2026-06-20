@@ -77,7 +77,7 @@
 - Card generation can throw after 10 attempts (rare edge case with certain dungeon/level combos)
 - No automatic save on every action (only on level complete/game over — potential data loss)
 - AudioService singleton uses factory pattern — not easily mockable for testing
-- No error boundaries in screens (exceptions crash the app)
+- ~~No error boundaries in screens (exceptions crash the app)~~ → **RESOLVED**: All 9 screens wrapped with `ErrorBoundary` (`lib/shared/widgets/error_boundary.dart`). Exceptions now show a styled error panel with a "Return to Camp" button instead of crashing.
 - `kIsDebugMode` constant in `constants.dart` is hardcoded `true` — should use Flutter's `kDebugMode` from `flutter/foundation`
 
 ## Evolution of Project Decisions

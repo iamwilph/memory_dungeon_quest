@@ -17,6 +17,7 @@ import '../widgets/dungeon_card_widget.dart';
 import '../services/audio_service.dart';
 import '../services/achievement_manager.dart';
 import '../widgets/ad_banner.dart';
+import '../shared/widgets/error_boundary.dart';
 import 'menu_screen.dart';
 import 'dungeon_selector_screen.dart';
 import 'shop_screen.dart';
@@ -217,7 +218,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final currentDungeon = gameState.activeDungeon;
     final theme = DungeonTheme.getTheme(currentDungeon.themeType);
 
-        return Scaffold(
+    return ErrorBoundary(
+      child: (context) => Scaffold(
       body: Column(
         children: [
           Expanded(
@@ -362,7 +364,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           const AdBanner(),
         ],
       ),
-    );
+    ), // Scaffold
+  ); // ErrorBoundary
   }
 
   // Modifier badge display helpers

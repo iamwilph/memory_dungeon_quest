@@ -6,6 +6,7 @@ import '../theme/dungeon_theme.dart';
 import '../theme/stone_painter.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
+import '../shared/widgets/error_boundary.dart';
 
 class AchievementsScreen extends StatelessWidget {
   const AchievementsScreen({super.key});
@@ -14,66 +15,68 @@ class AchievementsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final ach = AchievementManager();
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: DungeonTheme.getTheme(DungeonThemeType.stone).bgGradient,
+    return ErrorBoundary(
+      child: (context) => Scaffold(
+        body: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: DungeonTheme.getTheme(DungeonThemeType.stone).bgGradient,
+              ),
             ),
-          ),
-          const AmbientParticles(),
-          const TorchOverlay(child: SizedBox.expand()),
+            const AmbientParticles(),
+            const TorchOverlay(child: SizedBox.expand()),
 
-          SafeArea(
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _backButton(context),
-                      Text(
-                        'ACHIEVEMENTS',
-                        style: DungeonTheme.getAchievementsTitleStyle(context, const Color(0xFFF1C40F)),
-                      ),
-                      SizedBox(width: 80), // Spacer
-                    ],
-                  ),
-                ),
-
-                // Achievement Grid
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.4,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                      ),
-                      itemCount: ach.achievements.length,
-                      itemBuilder: (context, index) {
-                        final achievement = ach.achievements[index];
-                        final progress = ach.getProgress(achievement.id);
-                        final isUnlocked = ach.isUnlocked(achievement.id);
-
-                        return _AchievementCard(
-                          achievement: achievement,
-                          progress: progress,
-                          isUnlocked: isUnlocked,
-                        );
-                      },
+            SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _backButton(context),
+                        Text(
+                          'ACHIEVEMENTS',
+                          style: DungeonTheme.getAchievementsTitleStyle(context, const Color(0xFFF1C40F)),
+                        ),
+                        SizedBox(width: 80), // Spacer
+                      ],
                     ),
                   ),
-                ),
-              ],
+
+                  // Achievement Grid
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: GridView.builder(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 1.4,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                        itemCount: ach.achievements.length,
+                        itemBuilder: (context, index) {
+                          final achievement = ach.achievements[index];
+                          final progress = ach.getProgress(achievement.id);
+                          final isUnlocked = ach.isUnlocked(achievement.id);
+
+                          return _AchievementCard(
+                            achievement: achievement,
+                            progress: progress,
+                            isUnlocked: isUnlocked,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -11,6 +11,7 @@ import '../widgets/hud_element.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
 import '../services/audio_service.dart';
+import '../shared/widgets/error_boundary.dart';
 import 'game_screen.dart';
 import 'shop_screen.dart';
 import 'campaign_map_screen.dart';
@@ -79,168 +80,170 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final baseTheme = DungeonTheme.getTheme(DungeonThemeType.stone);
     final gameState = Provider.of<GameState>(context);
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background Gradient
-          Container(decoration: BoxDecoration(gradient: baseTheme.bgGradient)),
+    return ErrorBoundary(
+      child: (context) => Scaffold(
+        body: Stack(
+          children: [
+            // Background Gradient
+            Container(decoration: BoxDecoration(gradient: baseTheme.bgGradient)),
 
-          // Ambient Particles
-          const AmbientParticles(),
+            // Ambient Particles
+            const AmbientParticles(),
 
-          // Torchlight ambience and Vignette
-          const TorchOverlay(child: SizedBox.expand()),
+            // Torchlight ambience and Vignette
+            const TorchOverlay(child: SizedBox.expand()),
 
-          // Portal graphics & Title layout
-          Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40.0),
+            // Portal graphics & Title layout
+            Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 40.0),
 
-                  // Rotating Runic Portal Ring
-                  const RunicPortalWidget(),
+                    // Rotating Runic Portal Ring
+                    const RunicPortalWidget(),
 
-                  const SizedBox(height: 30.0),
+                    const SizedBox(height: 30.0),
 
-                  // Game Logo Header
-                  Text(
-                    'MEMORY',
-                    style: DungeonTheme.getRuneStyle(
-                      36.0,
-                      baseTheme.primaryColor,
+                    // Game Logo Header
+                    Text(
+                      'MEMORY',
+                      style: DungeonTheme.getRuneStyle(
+                        36.0,
+                        baseTheme.primaryColor,
+                      ),
                     ),
-                  ),
-                  Text(
-                    'DUNGEON QUEST',
-                    style: DungeonTheme.getTitleStyle(
-                      context,
-                      const Color(0xFFF1C40F),
+                    Text(
+                      'DUNGEON QUEST',
+                      style: DungeonTheme.getTitleStyle(
+                        context,
+                        const Color(0xFFF1C40F),
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 10.0),
+                    const SizedBox(height: 10.0),
 
-                  Text(
-                    '— MEMORY-MATCHING DUNGEON CRAWLER —',
-                    style: DungeonTheme.getBodyStyle(
-                      12.0,
-                      baseTheme.primaryColor.withValues(alpha: 0.7),
+                    Text(
+                      '— MEMORY-MATCHING DUNGEON CRAWLER —',
+                      style: DungeonTheme.getBodyStyle(
+                        12.0,
+                        baseTheme.primaryColor.withValues(alpha: 0.7),
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 50.0),
+                    const SizedBox(height: 50.0),
 
-                  // Action Menu
-                  MenuButton(
-                    text: gameState.isProgressLoaded
-                        ? 'DESCEND'
-                        : 'READING SEALS',
-                    icon: Icons.double_arrow,
-                    onPressed: () {
-                      if (!gameState.isProgressLoaded) return;
-                      gameState.resumeCampaign();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const GameScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                    // Action Menu
+                    MenuButton(
+                      text: gameState.isProgressLoaded
+                          ? 'DESCEND'
+                          : 'READING SEALS',
+                      icon: Icons.double_arrow,
+                      onPressed: () {
+                        if (!gameState.isProgressLoaded) return;
+                        gameState.resumeCampaign();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const GameScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                  const SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
 
-                  MenuButton(
-                    text: 'HOW TO PLAY',
-                    icon: Icons.menu_book,
-                    onPressed: () {
-                      _showHowToPlayDialog(context);
-                    },
-                  ),
+                    MenuButton(
+                      text: 'HOW TO PLAY',
+                      icon: Icons.menu_book,
+                      onPressed: () {
+                        _showHowToPlayDialog(context);
+                      },
+                    ),
 
-                  const SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
 
-                  MenuButton(
-                    text: 'CAMPAIGN MAP',
-                    icon: Icons.map,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CampaignMapScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                    MenuButton(
+                      text: 'CAMPAIGN MAP',
+                      icon: Icons.map,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CampaignMapScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                  const SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
 
-                  MenuButton(
-                    text: 'ARTIFACT MARKET',
-                    icon: Icons.store,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ShopScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                    MenuButton(
+                      text: 'ARTIFACT MARKET',
+                      icon: Icons.store,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ShopScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                  const SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
 
-                  MenuButton(
-                    text: 'ACHIEVEMENTS',
-                    icon: Icons.emoji_events,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AchievementsScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                    MenuButton(
+                      text: 'ACHIEVEMENTS',
+                      icon: Icons.emoji_events,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AchievementsScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                  const SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
 
-                  MenuButton(
-                    text: 'DAILY TRIAL',
-                    icon: Icons.calendar_today,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DailyChallengeScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                    MenuButton(
+                      text: 'DAILY TRIAL',
+                      icon: Icons.calendar_today,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DailyChallengeScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                  const SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
 
-                  MenuButton(
-                    text: 'SETTINGS',
-                    icon: Icons.settings,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                    MenuButton(
+                      text: 'SETTINGS',
+                      icon: Icons.settings,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                  const SizedBox(height: 40.0),
-                ],
+                    const SizedBox(height: 40.0),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

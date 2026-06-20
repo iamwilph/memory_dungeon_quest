@@ -7,6 +7,7 @@ import '../theme/dungeon_theme.dart';
 import '../theme/stone_painter.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
+import '../shared/widgets/error_boundary.dart';
 import 'game_screen.dart';
 
 class DungeonSelectorScreen extends StatelessWidget {
@@ -17,73 +18,75 @@ class DungeonSelectorScreen extends StatelessWidget {
     final baseTheme = DungeonTheme.getTheme(DungeonThemeType.stone);
     final gameState = Provider.of<GameState>(context);
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background Slate
-          Container(
-            decoration: BoxDecoration(
-              gradient: baseTheme.bgGradient,
+    return ErrorBoundary(
+      child: (context) => Scaffold(
+        body: Stack(
+          children: [
+            // Background Slate
+            Container(
+              decoration: BoxDecoration(
+                gradient: baseTheme.bgGradient,
+              ),
             ),
-          ),
 
-          // Particle System
-          const AmbientParticles(),
+            // Particle System
+            const AmbientParticles(),
 
-          // Torch & Vignette overlay
-          const TorchOverlay(
-            child: SizedBox.expand(),
-          ),
-
-          // Selector Content Layout
-          SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 20.0),
-                
-                // Back to main menu runic button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      _buildBackButton(context),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 10.0),
-                
-                Text(
-                  'CHAMBER SELECTION',
-                  style: DungeonTheme.getTitleStyle(context, const Color(0xFFF1C40F)),
-                ),
-                
-                Text(
-                  'DESCEND DEEPER INTO THE ANCIENT LABYRINTH',
-                  style: DungeonTheme.getBodyStyle(9.5, baseTheme.primaryColor.withValues(alpha:0.7)),
-                ),
-                
-                const SizedBox(height: 24.0),
-                
-                // Scrollable list of dungeon levels
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-                    itemCount: DungeonConfig.dungeons.length,
-                    itemBuilder: (context, index) {
-                      final config = DungeonConfig.dungeons[index];
-                      // Unlocked if index <= unlocked index
-                      final isUnlocked = index <= gameState.unlockedDungeonIndex;
-                      
-                      return _buildDungeonCard(context, config, isUnlocked, gameState);
-                    },
-                  ),
-                ),
-              ],
+            // Torch & Vignette overlay
+            const TorchOverlay(
+              child: SizedBox.expand(),
             ),
-          ),
-        ],
+
+            // Selector Content Layout
+            SafeArea(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20.0),
+                  
+                  // Back to main menu runic button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        _buildBackButton(context),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 10.0),
+                  
+                  Text(
+                    'CHAMBER SELECTION',
+                    style: DungeonTheme.getTitleStyle(context, const Color(0xFFF1C40F)),
+                  ),
+                  
+                  Text(
+                    'DESCEND DEEPER INTO THE ANCIENT LABYRINTH',
+                    style: DungeonTheme.getBodyStyle(9.5, baseTheme.primaryColor.withValues(alpha:0.7)),
+                  ),
+                  
+                  const SizedBox(height: 24.0),
+                  
+                  // Scrollable list of dungeon levels
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      itemCount: DungeonConfig.dungeons.length,
+                      itemBuilder: (context, index) {
+                        final config = DungeonConfig.dungeons[index];
+                        // Unlocked if index <= unlocked index
+                        final isUnlocked = index <= gameState.unlockedDungeonIndex;
+                        
+                        return _buildDungeonCard(context, config, isUnlocked, gameState);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

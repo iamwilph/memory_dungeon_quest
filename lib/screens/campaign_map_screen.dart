@@ -8,6 +8,7 @@ import '../theme/dungeon_theme.dart';
 import '../theme/stone_painter.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
+import '../shared/widgets/error_boundary.dart';
 import '../constants.dart';
 import 'game_screen.dart';
 import 'dungeon_selector_screen.dart';
@@ -22,40 +23,42 @@ class CampaignMapScreen extends StatelessWidget {
     final gameState = Provider.of<GameState>(context);
     final baseTheme = DungeonTheme.getTheme(DungeonThemeType.stone);
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(decoration: BoxDecoration(gradient: baseTheme.bgGradient)),
-          const AmbientParticles(),
-          const TorchOverlay(child: SizedBox.expand()),
+    return ErrorBoundary(
+      child: (context) => Scaffold(
+        body: Stack(
+          children: [
+            Container(decoration: BoxDecoration(gradient: baseTheme.bgGradient)),
+            const AmbientParticles(),
+            const TorchOverlay(child: SizedBox.expand()),
 
-          SafeArea(
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _backButton(context),
-                      Text(
-                        'CAMPAIGN MAP',
-                        style: DungeonTheme.getCampaignTitleStyle(context, const Color(0xFFF1C40F)),
-                      ),
-                      _listToggle(context),
-                    ],
+            SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _backButton(context),
+                        Text(
+                          'CAMPAIGN MAP',
+                          style: DungeonTheme.getCampaignTitleStyle(context, const Color(0xFFF1C40F)),
+                        ),
+                        _listToggle(context),
+                      ],
+                    ),
                   ),
-                ),
 
-                // Scrollable Vertical Map
-                Expanded(
-                  child: _CampaignMapContent(gameState: gameState),
-                ),
-              ],
+                  // Scrollable Vertical Map
+                  Expanded(
+                    child: _CampaignMapContent(gameState: gameState),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

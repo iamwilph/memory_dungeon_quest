@@ -6,6 +6,7 @@ import '../models/game_state.dart';
 import '../models/dungeon_config.dart'; // For DungeonThemeType
 import '../theme/dungeon_theme.dart';
 import '../widgets/hud_element.dart';
+import '../shared/widgets/error_boundary.dart';
 
 class ShopScreen extends StatelessWidget {
   const ShopScreen({super.key});
@@ -15,196 +16,198 @@ class ShopScreen extends StatelessWidget {
     final gameState = Provider.of<GameState>(context);
     final theme = DungeonTheme.getTheme(DungeonThemeType.stone);
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(decoration: BoxDecoration(gradient: theme.bgGradient)),
+    return ErrorBoundary(
+      child: (context) => Scaffold(
+        body: Stack(
+          children: [
+            Container(decoration: BoxDecoration(gradient: theme.bgGradient)),
 
-          // Torchlight & Vignette overlay
-          Container(color: Colors.black.withValues(alpha: 0.1)),
+            // Torchlight & Vignette overlay
+            Container(color: Colors.black.withValues(alpha: 0.1)),
 
-          // Main Content
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  // Header with back button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      InkWell(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: const Color(
-                                0xFF5A6B7C,
-                              ).withValues(alpha: 0.5),
+            // Main Content
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // Header with back button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.arrow_back,
-                                size: 14,
-                                color: Colors.white70,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFF5A6B7C,
+                                ).withValues(alpha: 0.5),
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'RETURN',
-                                style: DungeonTheme.getBodyStyle(
-                                  11,
-                                  Colors.white70,
-                                  weight: FontWeight.bold,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.arrow_back,
+                                  size: 14,
+                                  color: Colors.white70,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'ARTIFACT MARKET',
-                        style: DungeonTheme.getRuneStyle(
-                          18.0,
-                          const Color(0xFFF1C40F),
-                        ),
-                      ),
-                      SizedBox(width: 60),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16.0),
-
-                  // Lifetime Coins Display
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.yellow.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFFF1C40F).withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.stars,
-                            size: 20,
-                            color: Color(0xFFF1C40F),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${gameState.totalCoins} coins',
-                            style: DungeonTheme.getRuneStyle(
-                              16.0,
-                              const Color(0xFFF1C40F),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16.0),
-
-                  // Artifact Grid
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.85,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                        ),
-                    itemCount: GameState.artifactsCatalogue.keys.length,
-                    itemBuilder: (context, index) {
-                      final artifactId = GameState.artifactsCatalogue.keys
-                          .toList()[index];
-                      final def = GameState.artifactsCatalogue[artifactId]!;
-                      final isOwned = gameState.unlockedArtifacts.contains(
-                        artifactId,
-                      );
-                      final price = GameState.artifactPrices[artifactId] ?? 0;
-                      final icon = GameState.artifactIcons[artifactId] ?? '📦';
-
-                      return ShopArtifactCard(
-                        icon: icon,
-                        name: def.displayName,
-                        description: def.displayDescription,
-                        isOwned: isOwned,
-                        price: price,
-                        canAfford: gameState.canAffordArtifact(artifactId),
-                        onPurchase: () {
-                          final success = gameState.tryPurchaseArtifact(
-                            artifactId,
-                          );
-                          if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: const Color(0xFF27AE60),
-                                content: Text(
-                                  'Acquired "${def.displayName}"!',
+                                const SizedBox(width: 6),
+                                Text(
+                                  'RETURN',
                                   style: DungeonTheme.getBodyStyle(
-                                    12.0,
-                                    Colors.white,
+                                    11,
+                                    Colors.white70,
+                                    weight: FontWeight.bold,
                                   ),
                                 ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'ARTIFACT MARKET',
+                          style: DungeonTheme.getRuneStyle(
+                            18.0,
+                            const Color(0xFFF1C40F),
+                          ),
+                        ),
+                        SizedBox(width: 60),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16.0),
+
+                    // Lifetime Coins Display
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.yellow.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFFF1C40F).withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.stars,
+                              size: 20,
+                              color: Color(0xFFF1C40F),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${gameState.totalCoins} coins',
+                              style: DungeonTheme.getRuneStyle(
+                                16.0,
+                                const Color(0xFFF1C40F),
                               ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16.0),
+
+                    // Artifact Grid
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.85,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                      itemCount: GameState.artifactsCatalogue.keys.length,
+                      itemBuilder: (context, index) {
+                        final artifactId = GameState.artifactsCatalogue.keys
+                            .toList()[index];
+                        final def = GameState.artifactsCatalogue[artifactId]!;
+                        final isOwned = gameState.unlockedArtifacts.contains(
+                          artifactId,
+                        );
+                        final price = GameState.artifactPrices[artifactId] ?? 0;
+                        final icon = GameState.artifactIcons[artifactId] ?? '📦';
+
+                        return ShopArtifactCard(
+                          icon: icon,
+                          name: def.displayName,
+                          description: def.displayDescription,
+                          isOwned: isOwned,
+                          price: price,
+                          canAfford: gameState.canAffordArtifact(artifactId),
+                          onPurchase: () {
+                            final success = gameState.tryPurchaseArtifact(
+                              artifactId,
                             );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: const Color(0xFFE74C3C),
-                                content: Text(
-                                  'Not enough coins or already owned.',
-                                  style: DungeonTheme.getBodyStyle(
-                                    12.0,
-                                    Colors.white,
+                            if (success) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color(0xFF27AE60),
+                                  content: Text(
+                                    'Acquired "${def.displayName}"!',
+                                    style: DungeonTheme.getBodyStyle(
+                                      12.0,
+                                      Colors.white,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }
-                        },
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 16.0),
-
-                  // Back button at bottom
-                  Center(
-                    child: MenuButton(
-                      text: 'EXIT MARKET',
-                      icon: Icons.exit_to_app,
-                      onPressed: () => Navigator.pop(context),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color(0xFFE74C3C),
+                                  content: Text(
+                                    'Not enough coins or already owned.',
+                                    style: DungeonTheme.getBodyStyle(
+                                      12.0,
+                                      Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
                     ),
-                  ),
 
-                  const SizedBox(height: 16.0),
-                ],
+                    const SizedBox(height: 16.0),
+
+                    // Back button at bottom
+                    Center(
+                      child: MenuButton(
+                        text: 'EXIT MARKET',
+                        icon: Icons.exit_to_app,
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16.0),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Dim overlay for owned items (visual flair)
-          if (gameState.unlockedArtifacts.isNotEmpty)
-            Container(color: Colors.black.withValues(alpha: 0.05)),
-        ],
+            // Dim overlay for owned items (visual flair)
+            if (gameState.unlockedArtifacts.isNotEmpty)
+              Container(color: Colors.black.withValues(alpha: 0.05)),
+          ],
+        ),
       ),
     );
   }

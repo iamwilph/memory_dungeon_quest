@@ -9,6 +9,7 @@ import '../widgets/hud_element.dart';
 import '../widgets/torch_overlay.dart';
 import '../widgets/ambient_particles.dart';
 import '../services/audio_service.dart';
+import '../shared/widgets/error_boundary.dart';
 import 'terms_of_use_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -16,72 +17,74 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: DungeonTheme.getTheme(DungeonThemeType.stone).bgGradient,
+    return ErrorBoundary(
+      child: (context) => Scaffold(
+        body: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: DungeonTheme.getTheme(DungeonThemeType.stone).bgGradient,
+              ),
             ),
-          ),
-          const AmbientParticles(),
-          const TorchOverlay(child: SizedBox.expand()),
+            const AmbientParticles(),
+            const TorchOverlay(child: SizedBox.expand()),
 
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _backButton(context),
-                      Text(
-                        'SETTINGS',
-                        style: DungeonTheme.getTitleStyle(context, const Color(0xFFF1C40F)),
-                      ),
-                      const SizedBox(width: 60),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _backButton(context),
+                        Text(
+                          'SETTINGS',
+                          style: DungeonTheme.getTitleStyle(context, const Color(0xFFF1C40F)),
+                        ),
+                        const SizedBox(width: 60),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
 
-                  // Settings Content
-                  Expanded(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Sound Toggle
-                            _buildSoundToggle(context),
-                            const SizedBox(height: 24),
+                    // Settings Content
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Sound Toggle
+                              _buildSoundToggle(context),
+                              const SizedBox(height: 24),
 
-                            // Volume Sliders
-                            _buildVolumeSliders(context),
-                            const SizedBox(height: 32),
+                              // Volume Sliders
+                              _buildVolumeSliders(context),
+                              const SizedBox(height: 32),
 
-                            // Terms of Use
-                            _buildTermsButton(context),
-                            const SizedBox(height: 32),
+                              // Terms of Use
+                              _buildTermsButton(context),
+                              const SizedBox(height: 32),
 
-                            // Privacy Policy
-                            _buildPrivacyPolicyButton(context),
-                            const SizedBox(height: 32),
+                              // Privacy Policy
+                              _buildPrivacyPolicyButton(context),
+                              const SizedBox(height: 32),
 
-                            // Reset Campaign
-                            _buildResetButton(context),
-                          ],
+                              // Reset Campaign
+                              _buildResetButton(context),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
